@@ -16,6 +16,7 @@ local coinFolder = nil
 local enclosure = nil
 local gate = nil
 local isRoundResetting = false
+local currentRoundItemType = "Coin"
 
 -- Solo Arena Active Run Tracking
 local activePlayer = nil          -- Player currently running the arena
@@ -219,8 +220,7 @@ end
 
 function spawnArenaItem(position)
 	local gemEnabled = GemConfig.GetSetting("Enabled")
-	local gemRate = GemConfig.GetSetting("SpawnRate") or 0.2
-	if gemEnabled == true and math.random() < gemRate then
+	if gemEnabled == true and currentRoundItemType == "Gem" then
 		return spawnGem(position, GemConfig.SelectRandomTier())
 	else
 		return spawnCoin(position, CoinConfig.SelectRandomTier())
@@ -235,6 +235,28 @@ local function repopulateAllCoins()
 
 	-- Clear out any uncollected or remaining coins first
 	coinFolder:ClearAllChildren()
+
+	-- Determine round item type: 1 in 5 rounds (SpawnRate default 0.2) spawns all gems
+	local gemEnabled = GemConfig.GetSetting("Enabled")
+	local gemRate = GemConfig.GetSetting("SpawnRate") or 0.2
+	if gemEnabled == true and math.random() < gemRate then
+		currentRoundItemType = "Gem"
+	else
+		currentRoundItemType = "Coin"
+	end
+
+	local isGemRound = (currentRoundItemType == "Gem")
+	local coinSettings = CoinConfig.GetSettingsInstance()
+	if coinSettings then
+		coinSettings:SetAttribute("CurrentRoundItemType", currentRoundItemType)
+		coinSettings:SetAttribute("IsGemRound", isGemRound)
+	end
+
+	local gemSettings = GemConfig.GetSettingsInstance()
+	if gemSettings then
+		gemSettings:SetAttribute("CurrentRoundItemType", currentRoundItemType)
+		gemSettings:SetAttribute("IsGemRound", isGemRound)
+	end
 
 	local maxCoins = CoinConfig.GetSetting("MaxCoins")
 	for _ = 1, maxCoins do
@@ -270,7 +292,11 @@ local function updateAllBaseActivationPads(isBusy, busyOwnerName)
 			if cooldownPlayer and owner == cooldownPlayer and cooldownRemaining > 0 then
 				b:SetActivatePadState(string.format("COOLDOWN [%ds]\n[Other Players First]", cooldownRemaining), Color3.fromRGB(241, 196, 15), false)
 			else
-				b:SetActivatePadState("⚡ START ARENA RUN ⚡\n[Step to Open Gate]", Color3.fromRGB(46, 204, 113), true)
+				if currentRoundItemType == "Gem" then
+					b:SetActivatePadState("💎 GEM JACKPOT RUN 💎\n[Step to Open Gate]", Color3.fromRGB(80, 220, 255), true)
+				else
+					b:SetActivatePadState("⚡ START ARENA RUN ⚡\n[Step to Open Gate]", Color3.fromRGB(46, 204, 113), true)
+				end
 			end
 		end
 	end
@@ -307,7 +333,11 @@ local function startRunnerCooldown(player, base)
 
 		-- Re-enable runner's pad if arena is idle and not resetting
 		if base and activePlayer == nil and not isRoundResetting then
-			base:SetActivatePadState("⚡ START ARENA RUN ⚡\n[Step to Open Gate]", Color3.fromRGB(46, 204, 113), true)
+			if currentRoundItemType == "Gem" then
+				base:SetActivatePadState("💎 GEM JACKPOT RUN 💎\n[Step to Open Gate]", Color3.fromRGB(80, 220, 255), true)
+			else
+				base:SetActivatePadState("⚡ START ARENA RUN ⚡\n[Step to Open Gate]", Color3.fromRGB(46, 204, 113), true)
+			end
 		end
 	end)
 end
@@ -359,7 +389,7 @@ function onArenaCleared(reason)
 			activeBase = nil
 			isRoundResetting = false
 			updateAllBaseActivationPads(false)
-			enclosure:UpdateDisplayBoards("", 0, false)
+			enclosure:UpdateDisplayBoards("", 0, false, currentRoundItemType == "Gem")
 			enclosure:SetWallTransparency(0)
 		end
 	end)
@@ -400,7 +430,8 @@ function onArenaCleared(reason)
 		activePlayer = nil
 		activeBase = nil
 		isRoundResetting = false
-		enclosure:UpdateDisplayBoards("", 0, false)
+		updateAllBaseActivationPads(false)
+		enclosure:UpdateDisplayBoards("", 0, false, currentRoundItemType == "Gem")
 	end)
 end
 
@@ -428,7 +459,7 @@ local function startSoloArenaRun(player, base)
 
 	local duration = CoinConfig.GetSetting("CoinExpirationTime") or 30
 	activeExpirationTimer = duration
-	enclosure:UpdateDisplayBoards(playerName, duration, true)
+	enclosure:UpdateDisplayBoards(playerName, duration, true, currentRoundItemType == "Gem")
 
 	-- Eject any unauthorized players lingering inside the arena before opening gate
 	enclosure:EjectPlayers(function(intruder)
@@ -451,7 +482,7 @@ local function startSoloArenaRun(player, base)
 				task.wait(1)
 				activeExpirationTimer -= 1
 				settingsFolder:SetAttribute("ArenaTimeRemaining", activeExpirationTimer)
-				enclosure:UpdateDisplayBoards(playerName, activeExpirationTimer, true)
+				enclosure:UpdateDisplayBoards(playerName, activeExpirationTimer, true, currentRoundItemType == "Gem")
 			end
 			-- Timer expired without collecting all coins!
 			if not isRoundResetting and activePlayer == player then
@@ -702,6 +733,7 @@ local function initializeGame()
 
 	-- Make sure all 4 gates start closed and locked
 	gate:Close()
+	enclosure:UpdateDisplayBoards("", 0, false, currentRoundItemType == "Gem")
 	updateAllBaseActivationPads(false)
 end
 

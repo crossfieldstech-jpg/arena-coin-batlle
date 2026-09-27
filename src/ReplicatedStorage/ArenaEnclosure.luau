@@ -273,14 +273,33 @@ function ArenaEnclosure:GetGatesInfo()
 end
 
 -- Updates all interior wall digital boards with active runner name and time remaining
-function ArenaEnclosure:UpdateDisplayBoards(activeRunnerName, timeRemaining, isRunning)
+function ArenaEnclosure:UpdateDisplayBoards(activeRunnerName, timeRemaining, isRunning, isGemRound)
 	local isUrgent = isRunning and (timeRemaining and timeRemaining <= 10)
-	local bannerText = isRunning and string.format("RUNNER: %s", string.upper(activeRunnerName or "PLAYER")) or "★ ARENA STANDBY ★"
+	local bannerText
+	if isRunning then
+		if isGemRound then
+			bannerText = string.format("RUNNER: %s [💎 GEM ROUND 💎]", string.upper(activeRunnerName or "PLAYER"))
+		else
+			bannerText = string.format("RUNNER: %s", string.upper(activeRunnerName or "PLAYER"))
+		end
+	else
+		if isGemRound then
+			bannerText = "★ 💎 GEM JACKPOT ROUND READY 💎 ★"
+		else
+			bannerText = "★ ARENA STANDBY ★"
+		end
+	end
 	local timeStr = isRunning and string.format("⏱ %02d SECONDS", math.max(0, timeRemaining or 0)) or "READY TO ACTIVATE"
 
 	local runnerColor = isRunning and Color3.fromRGB(241, 196, 15) or Color3.fromRGB(46, 204, 113)
+	if isGemRound and not isUrgent then
+		runnerColor = Color3.fromRGB(80, 220, 255)
+	end
 	local timerColor = isUrgent and Color3.fromRGB(231, 76, 60) or (isRunning and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 190, 205))
 	local glowColor = isUrgent and Color3.fromRGB(231, 76, 60) or (isRunning and Color3.fromRGB(230, 126, 34) or Color3.fromRGB(46, 204, 113))
+	if isGemRound and not isUrgent then
+		glowColor = Color3.fromRGB(0, 200, 255)
+	end
 
 	for _, boardInfo in ipairs(self.interiorDisplayBoards) do
 		if boardInfo.runnerLabel then

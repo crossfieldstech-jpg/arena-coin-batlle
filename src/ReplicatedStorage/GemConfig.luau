@@ -5,7 +5,7 @@ local GemConfig = {}
 -- Base default settings
 GemConfig.Defaults = {
 	Enabled = true,          -- Toggle gem spawning in arena
-	SpawnRate = 0.2,         -- 1 in 5 items spawn as gems (20% rate)
+	SpawnRate = 0.2, -- 1 in 5 arena rounds spawn all gems as a jackpot round (20% rate)
 	ValueMultiplier = 1.2,   -- 1.2x value scale baseline
 	RespawnDelay = 2,        -- Delay in seconds for trickle respawn
 }

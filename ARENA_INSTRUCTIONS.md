@@ -72,7 +72,7 @@ Precious gems inside the arena are completely decoupled from coins and managed v
 - **Floating Bob**: Independent sinusoidal vertical floating oscillation.
 
 ### Gem Tiers & Drop Tables
-Gems roll independently 1 in 5 times on random increments (`SpawnRate = 0.2` default) across 3 tiers with a $1.2\times$ base value scale:
+Instead of individual per-item rolls, gems spawn as an all-gem jackpot round 1 in 5 times (20% random chance per round determined by `SpawnRate = 0.2`). When a jackpot round occurs, all spawned items in the arena become gems across 3 tiers with a $1.2\times$ base value scale:
 
 | Tier | Color | Base Value | Weight (Spawn Chance) | Description |
 | :--- | :--- | :--- | :--- | :--- |
@@ -153,7 +153,7 @@ Independent economy attributes attached to `ReplicatedStorage.GemSettings`:
 | Attribute | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `Enabled` | boolean | `true` | Toggle whether gems spawn in the arena |
-| `SpawnRate` | number | `0.2` | Probability (0.0 to 1.0) of spawning a gem instead of a coin (1 in 5 = 0.2) |
+| `SpawnRate` | number | `0.2` | Probability (0.0 to 1.0) of spawning an all-gem jackpot round instead of coins (1 in 5 = 0.2) |
 | `ValueMultiplier` | number | `1.2` | Base multiplier scale for gems vs coin tiers |
 | `RespawnDelay` | number | `2` | Delay in seconds for trickle respawn mode |
 | `Standard_Value` | number | `1.2` | Value awarded for Emerald gems |

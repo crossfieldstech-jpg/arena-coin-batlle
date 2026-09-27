@@ -53,7 +53,22 @@ When the game boots, `Configuration` instances named **`CoinSettings`** and **`G
 | `Silver_Value` | number | `3` | Point value awarded for Silver coins |
 | `Silver_Weight` | number | `30` | Spawn probability weight for Silver coins |
 | `Mega_Value` | number | `10` | Point value awarded for Mega (Cyan) coins |
-| `Mega_Weight` | number | `10` | Spawn probability weight for Mega coins |
+| `Mega_Weight` | number | `10` | Spawn weight for Mega coins |
+
+### Gem Values & Jackpot Round Settings (`GemSettings`)
+Gems spawn as an all-gem jackpot round 1 in 5 times (20% random chance per round determined by `SpawnRate = 0.2`) instead of per-item rolls. When active, all items in the arena spawn as radiant gemstones with custom values, colors, and 3D tumbling animations:
+
+| Attribute | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `Enabled` | boolean | `true` | Toggle whether gems spawn in the arena |
+| `SpawnRate` | number | `0.2` | Probability (0.0 to 1.0) of spawning an all-gem jackpot round instead of coins (1 in 5 = 0.2) |
+| `ValueMultiplier` | number | `1.2` | Base multiplier scale for gems vs coin tiers |
+| `Standard_Value` | number | `1.2` | Point value awarded for Emerald gems |
+| `Standard_Weight`| number | `60` | Spawn probability weight for Emerald gems |
+| `Silver_Value` | number | `3.6` | Point value awarded for Sapphire gems |
+| `Silver_Weight` | number | `30` | Spawn probability weight for Sapphire gems |
+| `Mega_Value` | number | `12.0` | Point value awarded for Ruby gems |
+| `Mega_Weight` | number | `10` | Spawn probability weight for Ruby gems |
 
 ## How to Customize or Switch Gate Triggers in the Future
 
