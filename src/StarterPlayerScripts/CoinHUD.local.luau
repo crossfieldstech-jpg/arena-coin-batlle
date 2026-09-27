@@ -44,6 +44,55 @@ countLabel.TextXAlignment = Enum.TextXAlignment.Left
 countLabel.Parent = panel
 
 local function updateCounter()
+
+-- Proximity fade: fade CoinHUD when far from any player base
+local RunService = game:GetService("RunService")
+
+local basePositions = {}
+local function refreshBasePositions()
+	basePositions = {}
+	for _, desc in ipairs(workspace:GetDescendants()) do
+		if desc:IsA("Model") and string.match(desc.Name or "", "^PlayerBase_") then
+			table.insert(basePositions, desc:GetPivot().Position)
+		end
+	end
+end
+
+task.spawn(function()
+	while true do
+		refreshBasePositions()
+		task.wait(3)
+	end
+end)
+
+RunService.RenderStepped:Connect(function()
+	local character = player.Character
+	if not character then return end
+	local root = character:FindFirstChild("HumanoidRootPart")
+	if not root then return end
+
+	local nearest = math.huge
+	for _, pos in ipairs(basePositions) do
+		local dist = (pos - root.Position).Magnitude
+		if dist < nearest then
+			nearest = dist
+		end
+	end
+
+	-- Visible within 30 studs, fades to 30% opacity at 60+ studs
+	local alpha
+	if nearest <= 30 then
+		alpha = 1
+	elseif nearest >= 60 then
+		alpha = 0.3
+	else
+		alpha = 1 - (nearest - 30) / 30 * 0.7
+	end
+
+	panel.BackgroundTransparency = 1 - alpha * 0.82
+	title.TextTransparency = 1 - alpha
+	countLabel.TextTransparency = 1 - alpha
+end)
 	local leaderstats = player:FindFirstChild("leaderstats")
 	if not leaderstats then
 		countLabel.Text = "0"
