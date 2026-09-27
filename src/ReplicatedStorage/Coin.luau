@@ -9,12 +9,13 @@ local DEFAULT_CONFIG = {
 	size = Vector3.new(0.3, 2.5, 2.5), -- Size.X = thickness, Size.Y/Z = diameter
 	value = 1,
 	color = Color3.fromRGB(255, 215, 0),
-	material = Enum.Material.Neon,
+	material = Enum.Material.Metal,
+	reflectance = 0.3,
 	respawnDelay = 3,
 	hasLight = true,
-	lightColor = Color3.fromRGB(255, 220, 50),
-	lightRange = 7,
-	lightBrightness = 1.2,
+	lightColor = Color3.fromRGB(255, 220, 100),
+	lightRange = 3.5,
+	lightBrightness = 0.35,
 }
 
 function Coin.new(position, customConfig)
@@ -37,17 +38,19 @@ function Coin.new(position, customConfig)
 	part.Shape = config.shape
 	part.Size = config.size
 	part.Material = config.material
+	part.Reflectance = config.reflectance or 0.3
 	part.Color = config.color
 	part.TopSurface = Enum.SurfaceType.Smooth
 	part.BottomSurface = Enum.SurfaceType.Smooth
 	part.Anchored = true
 	part.CanCollide = false
 	-- Roblox cylinder parts orient their circular faces along the X-axis.
-	-- Rotating 90 degrees around the Z axis stands the cylinder upright like a coin standing on edge.
-	part.CFrame = CFrame.new(position) * CFrame.Angles(0, math.rad(math.random(0, 360)), math.rad(90))
+	-- With CFrame.Angles(0, theta, 0), the flat coin face normal faces along X and spins upright around Y.
+	part.CFrame = CFrame.new(position) * CFrame.Angles(0, math.rad(math.random(0, 360)), 0)
 
-	-- Store coin value as an attribute on the instance for easy inspection
+	-- Store coin value and base position as attributes for client animation & interaction
 	part:SetAttribute("Value", config.value)
+	part:SetAttribute("BasePosition", position)
 
 	if config.hasLight then
 		local light = Instance.new("PointLight")

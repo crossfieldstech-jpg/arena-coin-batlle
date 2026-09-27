@@ -597,18 +597,8 @@ local function initializeGame()
 	updateAllBaseActivationPads(false)
 end
 
--- Continuous coin rotation animation
-RunService.Heartbeat:Connect(function(dt)
-	if not coinFolder then
-		return
-	end
-	local rotation = CFrame.Angles(0, math.rad(90) * dt, 0)
-	for _, coin in ipairs(coinFolder:GetChildren()) do
-		if coin:IsA("BasePart") then
-			coin.CFrame = coin.CFrame * rotation
-		end
-	end
-end)
+-- Note: Coin spin & bob animation is handled client-side in StarterPlayerScripts (CoinVisualController)
+-- to ensure maximum framerate smoothness and eliminate unnecessary network replication.
 
 -- Player Join and Character Spawning Handler
 local function onCharacterAdded(player, character)

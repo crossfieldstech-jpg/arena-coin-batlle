@@ -62,8 +62,12 @@ CoinConfig.Tiers = {
 		size = Vector3.new(0.3, 2.5, 2.5),
 		value = 1,
 		weight = 60,
-		color = Color3.fromRGB(255, 215, 0), -- Gold
-		lightColor = Color3.fromRGB(255, 220, 50),
+		color = Color3.fromRGB(240, 195, 30), -- Polished Gold
+		material = Enum.Material.Metal,
+		reflectance = 0.35,
+		lightColor = Color3.fromRGB(255, 220, 100),
+		lightRange = 3.5,
+		lightBrightness = 0.35,
 	},
 	Silver = {
 		name = "Silver",
@@ -71,8 +75,12 @@ CoinConfig.Tiers = {
 		size = Vector3.new(0.25, 2.2, 2.2),
 		value = 3,
 		weight = 30,
-		color = Color3.fromRGB(200, 200, 210), -- Silver
-		lightColor = Color3.fromRGB(210, 220, 240),
+		color = Color3.fromRGB(210, 215, 225), -- Gleaming Silver
+		material = Enum.Material.Metal,
+		reflectance = 0.45,
+		lightColor = Color3.fromRGB(220, 230, 255),
+		lightRange = 3.5,
+		lightBrightness = 0.35,
 	},
 	Mega = {
 		name = "Mega",
@@ -80,8 +88,12 @@ CoinConfig.Tiers = {
 		size = Vector3.new(0.4, 3.5, 3.5),
 		value = 10,
 		weight = 10,
-		color = Color3.fromRGB(80, 200, 255), -- Diamond / Cyan
-		lightColor = Color3.fromRGB(100, 220, 255),
+		color = Color3.fromRGB(70, 190, 255), -- Azure Diamond / Crystal Platinum
+		material = Enum.Material.Metal,
+		reflectance = 0.5,
+		lightColor = Color3.fromRGB(120, 210, 255),
+		lightRange = 4.0,
+		lightBrightness = 0.4,
 	},
 }
 
