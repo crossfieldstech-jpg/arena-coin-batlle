@@ -18,17 +18,21 @@ A modular Roblox multiplayer game where up to 4 players maintain their own bases
 - `INSTRUCTIONS.md` - Primary game overview & instructions
 - `BASE_INSTRUCTIONS.md` - Dedicated player base guide & future customization specifications
 - `src/ReplicatedStorage/Coin.lua` - Coin class handling shape, size, color, value, and touch pickups
-- `src/ReplicatedStorage/CoinConfig.lua` - Central configuration module and default parameters
+- `src/ReplicatedStorage/CoinConfig.lua` - Central configuration module and default parameters for coins
+- `src/ReplicatedStorage/Gem.luau` - Gem collectible class handling crystal mesh, materials, and collection
+- `src/ReplicatedStorage/GemConfig.luau` - Central configuration module and default parameters for gems
 - `src/ReplicatedStorage/ArenaEnclosure.lua` - Procedural arena construction, highways to bases, and ejection handling
 - `src/ReplicatedStorage/GateController.lua` - Animated sliding gate controller with status indicators and state management
 - `src/ReplicatedStorage/GateUnlockTrigger.lua` - Pluggable gate unlock trigger manager (dynamic timers, attribute flags, custom triggers)
 - `src/ReplicatedStorage/PlayerBase.lua` - Modular player base class: claim pad, coin bank, launch pad, and dynamic attributes
 - `src/ServerScriptService/CoinCollector.server.lua` - Game lifecycle coordinator (clearance detection, bases, gate locking, repopulation, and reopening)
-- `src/StarterPlayer/StarterPlayerScripts/CoinHUD.client.lua` - Live coin count HUD
+- `src/StarterPlayer/StarterPlayerScripts/CoinHUD.client.lua` - Live coin and gem count HUD
+- `src/StarterPlayer/StarterPlayerScripts/CoinVisualController.client.lua` - Client animation controller for coins
+- `src/StarterPlayer/StarterPlayerScripts/GemVisualController.client.lua` - Client 3D tumbling animation controller for gems
 
 ## Dynamic Configuration & Live Attributes
 
-When the game boots, a `Configuration` instance named **`CoinSettings`** is created in `ReplicatedStorage`. All attributes can be edited live during gameplay in Roblox Studio via the **Properties > Attributes** panel:
+When the game boots, `Configuration` instances named **`CoinSettings`** and **`GemSettings`** are created in `ReplicatedStorage`. All attributes can be edited live during gameplay in Roblox Studio via the **Properties > Attributes** panel:
 
 ### Arena & Gate Settings
 | Attribute | Type | Default | Description |

@@ -84,7 +84,7 @@ VaultItemRegistry.RegisterItem({
 	icon = "💎",
 	rarity = "Rare",
 	order = 2,
-	enabled = false,
+	enabled = true,
 	baseSellPrice = 50,
 	storageCap = 50000,
 	tradeable = true,

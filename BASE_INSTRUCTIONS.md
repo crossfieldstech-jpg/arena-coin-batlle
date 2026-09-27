@@ -129,13 +129,13 @@ Developers can release items or adjust game balance with zero UI or network code
 
 ---
 
-## 🚪 Ejection Points & Post-Ejection Pathing
+## 🚪 Ejection & Post-Ejection Pathing
 
 When the central coin collection arena in the middle of the map is cleared and all 4 gates lock:
 1. The server detects every player currently inside the central coin collection area.
 2. Players with an owned base are teleported directly back to their home base spawn pad (`ownedBase:GetSpawnCFrame()`), with linear and angular velocities reset to zero.
 3. Any unassigned players or intruders without a base are safely ejected just outside the nearest arena gate along the approach highway facing away from the arena.
-4. Players can immediately deposit coins into their bank vault, upgrade their multiplier, and await the next round!
+4. Players can immediately deposit coins and gems into their bank vault, upgrade their multiplier, and await the next round!
 
 ---
 
@@ -151,7 +151,6 @@ All base dimensions, distances, and starting variables can be tuned in [src/Repl
 | `BaseDistance` | `140` | Studs from arena center $(0,0,0)$ to the center of each player base (spacious separation) |
 | `BaseSize` | `84` | Dimensions of each player base platform (expanded 3x from 28 to 84 studs) |
 | `BaseWallHeight` | `9` | Wall height when constructed by player via tasks/upgrades |
-| `BaseEjectionDistance` | `54` | Distance fallback from arena center for gate approach clearance |
 | `BaseStartingLevel` | `1` | Default starting level for newly claimed bases |
 | `BaseStartingMultiplier`| `1.0` | Default multiplier applied to coins collected by base owners |
 | `BaseBankCapacity` | `500` | Starting maximum storage limit for base vaults |

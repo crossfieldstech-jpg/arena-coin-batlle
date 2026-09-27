@@ -102,7 +102,9 @@ coin-collector/
 └── src/
     ├── ReplicatedStorage/
     │   ├── Coin.lua                       # Coin OOP class: geometry, spin, light, collection callback
-    │   ├── CoinConfig.lua                 # Settings defaults & live attribute sync
+    │   ├── CoinConfig.lua                 # Coin settings defaults & live attribute sync
+    │   ├── Gem.luau                       # Gem OOP class: crystal geometry, material, collection callback
+    │   ├── GemConfig.luau                 # Gem economy settings defaults & live attribute sync
     │   ├── ArenaEnclosure.lua             # Procedural arena walls, highways, and ejection routing
     │   ├── GateController.lua             # TweenService 4-gate synchronizer & neon lights
     │   └── PlayerBase.lua                 # Modular player base class: claim pad, bank vault, launch pad
@@ -110,7 +112,9 @@ coin-collector/
     │   └── CoinCollector.server.lua       # Main game coordinator: loop, round states & leaderstats
     └── StarterPlayer/
         └── StarterPlayerScripts/
-            └── CoinHUD.client.lua         # Client-side UI displaying player coin balance
+            ├── CoinHUD.client.lua         # Client-side UI displaying player coin & gem balance
+            ├── CoinVisualController.client.lua # Client-side visual animation for coins
+            └── GemVisualController.client.lua  # Client-side 3D tumbling animation for gems
 ```
 
 ---
@@ -124,10 +128,11 @@ For specific implementations, refer directly to the designated guide:
 | **Arena Layout & Walls** | [ARENA_INSTRUCTIONS.md](ARENA_INSTRUCTIONS.md) | [src/ReplicatedStorage/ArenaEnclosure.lua](src/ReplicatedStorage/ArenaEnclosure.lua) |
 | **Synchronized Gates** | [ARENA_INSTRUCTIONS.md](ARENA_INSTRUCTIONS.md) | [src/ReplicatedStorage/GateController.lua](src/ReplicatedStorage/GateController.lua) |
 | **Coin Tiers & Spawning** | [ARENA_INSTRUCTIONS.md](ARENA_INSTRUCTIONS.md) | [src/ReplicatedStorage/Coin.lua](src/ReplicatedStorage/Coin.lua) |
+| **Gem Tiers & Economy** | [ARENA_INSTRUCTIONS.md](ARENA_INSTRUCTIONS.md) | [src/ReplicatedStorage/Gem.luau](src/ReplicatedStorage/Gem.luau), [src/ReplicatedStorage/GemConfig.luau](src/ReplicatedStorage/GemConfig.luau) |
 | **Clearance & Ejection** | [ARENA_INSTRUCTIONS.md](ARENA_INSTRUCTIONS.md) | [src/ServerScriptService/CoinCollector.server.lua](src/ServerScriptService/CoinCollector.server.lua) |
 | **Base Compound & Claims** | [BASE_INSTRUCTIONS.md](BASE_INSTRUCTIONS.md) | [src/ReplicatedStorage/PlayerBase.lua](src/ReplicatedStorage/PlayerBase.lua) |
 | **Coin Bank & Multipliers** | [BASE_INSTRUCTIONS.md](BASE_INSTRUCTIONS.md) | [src/ReplicatedStorage/PlayerBase.lua](src/ReplicatedStorage/PlayerBase.lua) |
 | **Base Wall Construction** | [BASE_INSTRUCTIONS.md](BASE_INSTRUCTIONS.md) | [src/ReplicatedStorage/PlayerBase.lua](src/ReplicatedStorage/PlayerBase.lua) |
 | **Activity & Task Zones** | [BASE_INSTRUCTIONS.md](BASE_INSTRUCTIONS.md) | [src/ReplicatedStorage/PlayerBase.lua](src/ReplicatedStorage/PlayerBase.lua) |
-| **Global Config Attributes** | [src/ReplicatedStorage/CoinConfig.lua](src/ReplicatedStorage/CoinConfig.lua) | [src/ReplicatedStorage/CoinConfig.lua](src/ReplicatedStorage/CoinConfig.lua) |
+| **Global Config Attributes** | [src/ReplicatedStorage/CoinConfig.lua](src/ReplicatedStorage/CoinConfig.lua) | [src/ReplicatedStorage/CoinConfig.lua](src/ReplicatedStorage/CoinConfig.lua), [src/ReplicatedStorage/GemConfig.luau](src/ReplicatedStorage/GemConfig.luau) |
 

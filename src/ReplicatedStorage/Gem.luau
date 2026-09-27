@@ -1,26 +1,25 @@
 local Players = game:GetService("Players")
 local CollectionService = game:GetService("CollectionService")
 
-local Coin = {}
-Coin.__index = Coin
+local Gem = {}
+Gem.__index = Gem
 
--- Default coin configuration
 local DEFAULT_CONFIG = {
-	shape = Enum.PartType.Cylinder,
-	size = Vector3.new(0.3, 2.5, 2.5), -- Size.X = thickness, Size.Y/Z = diameter
-	value = 1,
-	color = Color3.fromRGB(255, 215, 0),
-	material = Enum.Material.Metal,
-	reflectance = 0.3,
-	respawnDelay = 3,
+	shape = Enum.PartType.Block,
+	size = Vector3.new(1.8, 1.8, 1.8),
+	value = 1.2,
+	color = Color3.fromRGB(46, 204, 113),
+	material = Enum.Material.Neon,
+	reflectance = 0.4,
+	respawnDelay = 2,
 	hasLight = true,
-	lightColor = Color3.fromRGB(255, 220, 100),
-	lightRange = 3.5,
-	lightBrightness = 0.35,
+	lightColor = Color3.fromRGB(80, 225, 140),
+	lightRange = 4.0,
+	lightBrightness = 0.4,
 }
 
-function Coin.new(position, customConfig)
-	local self = setmetatable({}, Coin)
+function Gem.new(position, customConfig)
+	local self = setmetatable({}, Gem)
 
 	local config = {}
 	for k, v in pairs(DEFAULT_CONFIG) do
@@ -35,26 +34,23 @@ function Coin.new(position, customConfig)
 
 	-- Create visual Part
 	local part = Instance.new("Part")
-	part.Name = "Coin"
+	part.Name = "Gem"
 	part.Shape = config.shape
 	part.Size = config.size
 	part.Material = config.material
-	part.Reflectance = config.reflectance or 0.3
+	part.Reflectance = config.reflectance or 0.4
 	part.Color = config.color
 	part.TopSurface = Enum.SurfaceType.Smooth
 	part.BottomSurface = Enum.SurfaceType.Smooth
 	part.Anchored = true
 	part.CanCollide = false
-	-- Roblox cylinder parts orient their circular faces along the X-axis.
-	-- With CFrame.Angles(0, theta, 0), the flat coin face normal faces along X and spins upright around Y.
-	part.CFrame = CFrame.new(position) * CFrame.Angles(0, math.rad(math.random(0, 360)), 0)
+	part.CFrame = CFrame.new(position) * CFrame.Angles(math.rad(45), math.rad(math.random(0, 360)), math.rad(45))
 
-	CollectionService:AddTag(part, "Coin")
+	CollectionService:AddTag(part, "Gem")
 
-	-- Store coin value, item type, and base position as attributes for client animation & interaction
 	part:SetAttribute("Value", config.value)
-	part:SetAttribute("ItemType", "Coin")
 	part:SetAttribute("BasePosition", position)
+	part:SetAttribute("ItemType", "Gem")
 	if config.name then
 		part:SetAttribute("TierName", config.name)
 	end
@@ -74,36 +70,27 @@ function Coin.new(position, customConfig)
 	return self
 end
 
-function Coin:SetParent(parent)
+function Gem:SetParent(parent)
 	self.part.Parent = parent
 	return self
 end
 
-function Coin:GetPart()
+function Gem:GetPart()
 	return self.part
 end
 
-function Coin:GetValue()
+function Gem:GetValue()
 	return self.config.value
 end
 
-function Coin:SetValue(newValue)
+function Gem:SetValue(newValue)
 	self.config.value = newValue
 	if self.part and self.part.Parent then
 		self.part:SetAttribute("Value", newValue)
 	end
 end
 
-function Coin:SetShape(newShape, newSize)
-	self.config.shape = newShape
-	self.part.Shape = newShape
-	if newSize then
-		self.config.size = newSize
-		self.part.Size = newSize
-	end
-end
-
-function Coin:BindCollection(onCollectCallback)
+function Gem:BindCollection(onCollectCallback)
 	if self._touchedConnection then
 		self._touchedConnection:Disconnect()
 		self._touchedConnection = nil
@@ -138,7 +125,7 @@ function Coin:BindCollection(onCollectCallback)
 	end)
 end
 
-function Coin:Destroy()
+function Gem:Destroy()
 	if self._touchedConnection then
 		self._touchedConnection:Disconnect()
 		self._touchedConnection = nil
@@ -149,4 +136,4 @@ function Coin:Destroy()
 	end
 end
 
-return Coin
+return Gem

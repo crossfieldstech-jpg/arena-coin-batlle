@@ -5,6 +5,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Coin = require(ReplicatedStorage:WaitForChild("Coin"))
 local CoinConfig = require(ReplicatedStorage:WaitForChild("CoinConfig"))
+local Gem = require(ReplicatedStorage:WaitForChild("Gem"))
+local GemConfig = require(ReplicatedStorage:WaitForChild("GemConfig"))
 local ArenaEnclosure = require(ReplicatedStorage:WaitForChild("ArenaEnclosure"))
 local GateController = require(ReplicatedStorage:WaitForChild("GateController"))
 local PlayerBase = require(ReplicatedStorage:WaitForChild("PlayerBase"))
@@ -46,7 +48,15 @@ local function ensureLeaderstats(player)
 		coinsValue.Parent = leaderstats
 	end
 
-	return leaderstats, coinsValue
+	local gemsValue = leaderstats:FindFirstChild("Gems")
+	if not gemsValue then
+		gemsValue = Instance.new("NumberValue")
+		gemsValue.Name = "Gems"
+		gemsValue.Value = 0
+		gemsValue.Parent = leaderstats
+	end
+
+	return leaderstats, coinsValue, gemsValue
 end
 
 local function getRandomPosition()
@@ -68,6 +78,8 @@ local function getActiveCoinCount()
 end
 
 local spawnCoin -- forward declaration
+local spawnGem -- forward declaration
+local spawnArenaItem -- forward declaration
 local onArenaCleared -- forward declaration
 
 function spawnCoin(position, tierConfig)
@@ -92,23 +104,23 @@ function spawnCoin(position, tierConfig)
 			return
 		end
 
-		local _, coinsValue = ensureLeaderstats(player)
+		local _, coinsValue, _ = ensureLeaderstats(player)
 
 		-- Apply player's base coin multiplier if they own a base
 		local multiplier = 1.0
 		local ownedBase = playerToBaseMap[player]
 		if ownedBase then
 			multiplier = ownedBase.coinMultiplier or 1.0
-			-- Update player's base performance stats
-			local earned = math.round(coin:GetValue() * multiplier)
+		end
+
+		local earned = math.round(coin:GetValue() * multiplier)
+		if ownedBase then
 			ownedBase:UpdatePerformance({
 				totalEarned = ownedBase.totalEarned + earned,
 				score = ownedBase.performanceScore + earned,
 			})
 		end
-
-		local pointsToAdd = math.round(coin:GetValue() * multiplier)
-		coinsValue.Value += pointsToAdd
+		coinsValue.Value += earned
 
 		local isBatchOnly = CoinConfig.GetSetting("BatchRespawnOnly")
 		if isBatchOnly then
@@ -123,7 +135,7 @@ function spawnCoin(position, tierConfig)
 			local delayTime = math.max(0.1, CoinConfig.GetSetting("RespawnDelay"))
 			task.delay(delayTime, function()
 				if coinFolder and getActiveCoinCount() < CoinConfig.GetSetting("MaxCoins") then
-					spawnCoin()
+					spawnArenaItem()
 				end
 			end)
 
@@ -138,6 +150,83 @@ function spawnCoin(position, tierConfig)
 	return coinInstance
 end
 
+function spawnGem(position, tierConfig)
+	if not coinFolder or not coinFolder.Parent then
+		return nil
+	end
+
+	local maxCoins = CoinConfig.GetSetting("MaxCoins")
+	if getActiveCoinCount() >= maxCoins then
+		return nil
+	end
+
+	position = position or getRandomPosition()
+	tierConfig = tierConfig or GemConfig.SelectRandomTier()
+
+	local gemInstance = Gem.new(position, tierConfig)
+	gemInstance:SetParent(coinFolder)
+
+	gemInstance:BindCollection(function(player, gem)
+		-- Only the active player who initiated the run is allowed to collect items
+		if activePlayer and player ~= activePlayer then
+			return
+		end
+
+		local _, _, gemsValue = ensureLeaderstats(player)
+
+		-- Apply player's base multiplier if they own a base
+		local multiplier = 1.0
+		local ownedBase = playerToBaseMap[player]
+		if ownedBase then
+			multiplier = ownedBase.coinMultiplier or 1.0
+		end
+
+		local earned = math.round((gem:GetValue() * multiplier) * 10) / 10
+		gemsValue.Value += earned
+		if ownedBase then
+			ownedBase:UpdatePerformance({
+				score = ownedBase.performanceScore + math.round(earned * 2),
+			})
+		end
+
+		local isBatchOnly = CoinConfig.GetSetting("BatchRespawnOnly")
+		if isBatchOnly then
+			-- Round-based: check if arena cleared
+			task.defer(function()
+				if getActiveCoinCount() == 0 and not isRoundResetting then
+					onArenaCleared("AllCoinsCollected")
+				end
+			end)
+		else
+			-- Continuous trickle respawn mode
+			local delayTime = math.max(0.1, GemConfig.GetSetting("RespawnDelay") or 2)
+			task.delay(delayTime, function()
+				if coinFolder and getActiveCoinCount() < CoinConfig.GetSetting("MaxCoins") then
+					spawnArenaItem()
+				end
+			end)
+
+			task.defer(function()
+				if getActiveCoinCount() == 0 and not isRoundResetting then
+					onArenaCleared("AllCoinsCollected")
+				end
+			end)
+		end
+	end)
+
+	return gemInstance
+end
+
+function spawnArenaItem(position)
+	local gemEnabled = GemConfig.GetSetting("Enabled")
+	local gemRate = GemConfig.GetSetting("SpawnRate") or 0.2
+	if gemEnabled == true and math.random() < gemRate then
+		return spawnGem(position, GemConfig.SelectRandomTier())
+	else
+		return spawnCoin(position, CoinConfig.SelectRandomTier())
+	end
+end
+
 -- Fully repopulates the arena up to MaxCoins
 local function repopulateAllCoins()
 	if not coinFolder then
@@ -149,7 +238,7 @@ local function repopulateAllCoins()
 
 	local maxCoins = CoinConfig.GetSetting("MaxCoins")
 	for _ = 1, maxCoins do
-		spawnCoin()
+		spawnArenaItem()
 	end
 end
 
@@ -434,24 +523,39 @@ local function setupPlayerBases()
 				return
 			end
 
-			local _, coinsValue = ensureLeaderstats(player)
-			if coinsValue.Value > 0 then
-				local depositAmount = coinsValue.Value
-				coinsValue.Value = 0
+			local _, coinsValue, gemsValue = ensureLeaderstats(player)
+			if (coinsValue and coinsValue.Value > 0) or (gemsValue and gemsValue.Value > 0) then
+				local scoreGain = 0
+				local perfUpdates = {}
 
-				VaultService.AddItem(player, "Coins", depositAmount)
-				local newBanked = VaultService.GetItemAmount(player, "Coins")
-				-- Level up formula: every 50 banked coins increases level
-				local newLevel = 1 + math.floor(newBanked / 50)
-				-- Performance multiplier: +10% per level above 1
-				local newMultiplier = 1.0 + (newLevel - 1) * 0.1
+				if coinsValue and coinsValue.Value > 0 then
+					local depositAmount = coinsValue.Value
+					coinsValue.Value = 0
 
-				targetBase:UpdatePerformance({
-					bankedCoins = newBanked,
-					level = newLevel,
-					multiplier = newMultiplier,
-					score = targetBase.performanceScore + (depositAmount * 2),
-				})
+					VaultService.AddItem(player, "Coins", depositAmount)
+					local newBanked = VaultService.GetItemAmount(player, "Coins")
+					-- Level up formula: every 50 banked coins increases level
+					local newLevel = 1 + math.floor(newBanked / 50)
+					-- Performance multiplier: +10% per level above 1
+					local newMultiplier = 1.0 + (newLevel - 1) * 0.1
+
+					perfUpdates.bankedCoins = newBanked
+					perfUpdates.level = newLevel
+					perfUpdates.multiplier = newMultiplier
+					scoreGain += depositAmount * 2
+				end
+
+				if gemsValue and gemsValue.Value > 0 then
+					local gemDeposit = gemsValue.Value
+					gemsValue.Value = 0
+					VaultService.AddItem(player, "Gems", gemDeposit)
+					scoreGain += math.round(gemDeposit * 3)
+				end
+
+				if scoreGain > 0 or perfUpdates.bankedCoins ~= nil then
+					perfUpdates.score = targetBase.performanceScore + scoreGain
+					targetBase:UpdatePerformance(perfUpdates)
+				end
 			end
 
 			local now = tick()
@@ -508,7 +612,9 @@ local function initializeGame()
 	settingsFolder:SetAttribute("ArenaActivePlayer", "")
 	settingsFolder:SetAttribute("ArenaActiveBaseId", 0)
 
-	-- 1. Construct Central Coin Arena Enclosure with 4 Gates & 4 Ejection Points
+	GemConfig.GetSettingsInstance()
+
+	-- 1. Construct Central Coin Arena Enclosure with 4 Gates
 	enclosure = ArenaEnclosure.new({
 		sizeX = CoinConfig.GetSetting("ArenaSizeX"),
 		sizeZ = CoinConfig.GetSetting("ArenaSizeZ"),
@@ -517,7 +623,6 @@ local function initializeGame()
 		gateWidth = CoinConfig.GetSetting("GateWidth"),
 		gateHeight = CoinConfig.GetSetting("GateHeight"),
 		center = Vector3.new(0, 0, 0),
-		ejectionDistance = CoinConfig.GetSetting("BaseEjectionDistance") or 54,
 		baseDistance = CoinConfig.GetSetting("BaseDistance") or 140,
 		baseSize = CoinConfig.GetSetting("BaseSize") or 84,
 	})
@@ -568,7 +673,7 @@ local function initializeGame()
 		end
 
 		if not isAllowed then
-			-- Bounce/teleport player back to their own base or ejection pad
+			-- Bounce/teleport player back to their own base or gate approach pathway
 			local ownedBase = playerToBaseMap[player]
 			if ownedBase then
 				root.CFrame = ownedBase:GetSpawnCFrame()

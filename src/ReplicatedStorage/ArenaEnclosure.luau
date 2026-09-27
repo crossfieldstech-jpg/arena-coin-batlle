@@ -14,13 +14,11 @@ function ArenaEnclosure.new(config)
 	self.gateWidth = config.gateWidth or 14
 	self.gateHeight = config.gateHeight or 12
 	self.center = config.center or Vector3.new(0, 0, 0)
-	self.ejectionDistance = config.ejectionDistance or 54
 	self.baseDistance = config.baseDistance or 140
 	self.baseSize = config.baseSize or 84
 	self.wallTransparency = config.wallTransparency or 0
 
 	self.container = nil
-	self.ejectionPads = {}
 	self.gatesInfo = {}
 	self.interiorDisplayBoards = {}
 
@@ -36,7 +34,6 @@ function ArenaEnclosure:Build()
 	container.Name = "ArenaEnclosure"
 	container.Parent = Workspace
 	self.container = container
-	self.ejectionPads = {}
 	self.gatesInfo = {}
 	self.interiorDisplayBoards = {}
 	self.wallParts = {}
@@ -275,10 +272,6 @@ function ArenaEnclosure:GetGatesInfo()
 	return self.gatesInfo
 end
 
-function ArenaEnclosure:GetEjectionPoints()
-	return self.ejectionPads
-end
-
 -- Updates all interior wall digital boards with active runner name and time remaining
 function ArenaEnclosure:UpdateDisplayBoards(activeRunnerName, timeRemaining, isRunning)
 	local isUrgent = isRunning and (timeRemaining and timeRemaining <= 10)
@@ -302,51 +295,6 @@ function ArenaEnclosure:UpdateDisplayBoards(activeRunnerName, timeRemaining, isR
 			boardInfo.glow.Color3 = glowColor
 		end
 	end
-end
-
--- Returns the ejection point closest to a given position (such as the player's base)
-function ArenaEnclosure:GetClosestEjectionPoint(targetPosition)
-	if #self.ejectionPads > 0 then
-		local closestPoint = self.ejectionPads[1]
-		local closestDist = math.huge
-
-		for _, pt in ipairs(self.ejectionPads) do
-			local dist = (pt.position - targetPosition).Magnitude
-			if dist < closestDist then
-				closestDist = dist
-				closestPoint = pt
-			end
-		end
-
-		return closestPoint
-	end
-
-	-- Fallback to nearest gate approach point
-	local nearestGate = nil
-	local nearestDist = math.huge
-	for _, gateInfo in ipairs(self.gatesInfo) do
-		local dist = (gateInfo.closedCFrame.Position - targetPosition).Magnitude
-		if dist < nearestDist then
-			nearestDist = dist
-			nearestGate = gateInfo
-		end
-	end
-
-	if nearestGate then
-		local fallbackCFrame = nearestGate.closedCFrame * CFrame.new(0, 2, 16)
-		return {
-			direction = nearestGate.direction,
-			position = fallbackCFrame.Position,
-			cframe = fallbackCFrame,
-		}
-	end
-
-	local fallbackCFrame = CFrame.new(self.center + Vector3.new(0, 2, self.sizeZ / 2 + 16))
-	return {
-		direction = "South",
-		position = fallbackCFrame.Position,
-		cframe = fallbackCFrame,
-	}
 end
 
 function ArenaEnclosure:IsInside(position)
@@ -441,7 +389,6 @@ function ArenaEnclosure:Destroy()
 		self.container:Destroy()
 		self.container = nil
 	end
-	self.ejectionPads = {}
 	self.gatesInfo = {}
 end
 

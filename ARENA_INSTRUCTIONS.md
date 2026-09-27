@@ -61,7 +61,28 @@ Coins randomly spawn across 3 tiers based on weighted roll tables defined in [sr
 
 ---
 
-## 🔄 Round Clearance & Expiration Lifecycle
+## � Precious Gem Spawning & Geometry
+
+Precious gems inside the arena are completely decoupled from coins and managed via [src/ReplicatedStorage/Gem.luau](src/ReplicatedStorage/Gem.luau) and [src/ReplicatedStorage/GemConfig.luau](src/ReplicatedStorage/GemConfig.luau).
+
+### Gem Geometry & Animation
+- **Shape**: Crystal cubic blocks spawned upright at chest/eye level ($y \approx 3.0-4.0$).
+- **Material**: Radiant `Neon` material with an embedded `PointLight` matching the gem's hue.
+- **Dynamic Tumbling**: Multi-axis 3D tumbling rotation around vertex axes managed by [src/StarterPlayer/StarterPlayerScripts/GemVisualController.client.lua](src/StarterPlayer/StarterPlayerScripts/GemVisualController.client.lua).
+- **Floating Bob**: Independent sinusoidal vertical floating oscillation.
+
+### Gem Tiers & Drop Tables
+Gems roll independently 1 in 5 times on random increments (`SpawnRate = 0.2` default) across 3 tiers with a $1.2\times$ base value scale:
+
+| Tier | Color | Base Value | Weight (Spawn Chance) | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **Emerald** (Standard) | Emerald Green (`46, 204, 113`) | `1.2` | 60% (Weight: 60) | Vivid common gemstone |
+| **Sapphire** (Silver) | Sapphire Blue (`52, 152, 219`) | `3.6` | 30% (Weight: 30) | Sparkling uncommon gemstone |
+| **Ruby** (Mega) | Ruby Red (`231, 76, 60`) | `12.0` | 10% (Weight: 10) | Radiant high-value gemstone |
+
+---
+
+## �🔄 Round Clearance & Expiration Lifecycle
 
 The arena run lifecycle is managed by [src/ServerScriptService/CoinCollector.server.lua](src/ServerScriptService/CoinCollector.server.lua):
 
@@ -126,6 +147,22 @@ These attributes are attached to the `ReplicatedStorage.CoinSettings` folder and
 | `Mega_Value` | number | `10` | Value awarded for Mega (Cyan) coins |
 | `Mega_Weight` | number | `10` | Spawn weight for Mega coins |
 
+### Gem Live Configuration Attributes (`ReplicatedStorage.GemSettings`)
+Independent economy attributes attached to `ReplicatedStorage.GemSettings`:
+
+| Attribute | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `Enabled` | boolean | `true` | Toggle whether gems spawn in the arena |
+| `SpawnRate` | number | `0.2` | Probability (0.0 to 1.0) of spawning a gem instead of a coin (1 in 5 = 0.2) |
+| `ValueMultiplier` | number | `1.2` | Base multiplier scale for gems vs coin tiers |
+| `RespawnDelay` | number | `2` | Delay in seconds for trickle respawn mode |
+| `Standard_Value` | number | `1.2` | Value awarded for Emerald gems |
+| `Standard_Weight` | number | `60` | Spawn weight for Emerald gems |
+| `Silver_Value` | number | `3.6` | Value awarded for Sapphire gems |
+| `Silver_Weight` | number | `30` | Spawn weight for Sapphire gems |
+| `Mega_Value` | number | `12.0` | Value awarded for Ruby gems |
+| `Mega_Weight` | number | `10` | Spawn weight for Ruby gems |
+
 ---
 
 ## 🛠️ Modifying & Extending the Arena
@@ -133,3 +170,4 @@ These attributes are attached to the `ReplicatedStorage.CoinSettings` folder and
 - **Arena Enclosure Geometry**: To customize dimensions, highway widths, or wall visuals, see [src/ReplicatedStorage/ArenaEnclosure.lua](src/ReplicatedStorage/ArenaEnclosure.lua).
 - **Gate Motion & Lighting**: To customize tween times, easing curves, or indicator lights, see [src/ReplicatedStorage/GateController.lua](src/ReplicatedStorage/GateController.lua).
 - **Coin Visuals & Hitboxes**: To modify coin meshes, particles, or collection sounds, see [src/ReplicatedStorage/Coin.lua](src/ReplicatedStorage/Coin.lua).
+- **Gem Visuals & Economy**: To tune gem attributes, drop weights, or crystal meshes, see [src/ReplicatedStorage/Gem.luau](src/ReplicatedStorage/Gem.luau) and [src/ReplicatedStorage/GemConfig.luau](src/ReplicatedStorage/GemConfig.luau).

@@ -1,13 +1,21 @@
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
+local CollectionService = game:GetService("CollectionService")
 
 local coinFolder = Workspace:WaitForChild("Coins", 10)
 
 -- Cache of original stationary base positions for each coin
 local basePositions = {}
 
+local function isCoin(part)
+	if not part:IsA("BasePart") then
+		return false
+	end
+	return part.Name == "Coin" or CollectionService:HasTag(part, "Coin")
+end
+
 local function registerCoin(coin)
-	if not coin:IsA("BasePart") then
+	if not isCoin(coin) then
 		return
 	end
 
@@ -52,7 +60,7 @@ RunService.RenderStepped:Connect(function()
 	local spinAngle = (t * SPIN_SPEED) % (math.pi * 2)
 
 	for _, coin in ipairs(coinFolder:GetChildren()) do
-		if coin:IsA("BasePart") and coin.Parent then
+		if isCoin(coin) and coin.Parent then
 			local basePos = basePositions[coin]
 			if not basePos then
 				local attrPos = coin:GetAttribute("BasePosition")
