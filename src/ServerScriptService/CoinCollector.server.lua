@@ -255,6 +255,9 @@ function onArenaCleared(reason)
 	settingsFolder:SetAttribute("ArenaTimeRemaining", 0)
 	enclosure:UpdateDisplayBoards("", 0, false)
 
+	-- Restore arena walls to opaque now that the run is over
+	enclosure:SetWallTransparency(0)
+
 	-- Safety watchdog timeout to guarantee recovery if any callback or tween drops
 	task.delay(4.0, function()
 		if isRoundResetting then
@@ -268,6 +271,7 @@ function onArenaCleared(reason)
 			isRoundResetting = false
 			updateAllBaseActivationPads(false)
 			enclosure:UpdateDisplayBoards("", 0, false)
+			enclosure:SetWallTransparency(0)
 		end
 	end)
 
@@ -322,6 +326,10 @@ local function startSoloArenaRun(player, base)
 	settingsFolder:SetAttribute("ArenaStatus", "ActiveRun")
 	settingsFolder:SetAttribute("ArenaActivePlayer", playerName)
 	settingsFolder:SetAttribute("ArenaActiveBaseId", base.id)
+
+	-- Make arena walls transparent so other players can see the runner and timer
+	local wallTrans = CoinConfig.GetSetting("ArenaWallTransparency") or 0.7
+	enclosure:SetWallTransparency(wallTrans)
 
 	-- Update pads across all bases
 	updateAllBaseActivationPads(true, playerName)
