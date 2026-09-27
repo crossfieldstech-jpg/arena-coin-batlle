@@ -126,6 +126,12 @@ local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(0, 8)
 closeCorner.Parent = closeButton
 
+local closeStroke = Instance.new("UIStroke")
+closeStroke.Color = Color3.fromRGB(75, 85, 100)
+closeStroke.Thickness = 1.5
+closeStroke.Transparency = 0.3
+closeStroke.Parent = closeButton
+
 -- Summary Info Bar
 local summaryBar = Instance.new("Frame")
 summaryBar.Name = "SummaryBar"

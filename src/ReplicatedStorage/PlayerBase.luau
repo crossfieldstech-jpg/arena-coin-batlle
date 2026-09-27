@@ -3,6 +3,25 @@ local Players = game:GetService("Players")
 local PlayerBase = {}
 PlayerBase.__index = PlayerBase
 
+-- Color helpers for muted, non-glaring interactive elements
+local function mutedColor(color)
+	return Color3.fromRGB(
+		math.floor(color.R * 255 * 0.42),
+		math.floor(color.G * 255 * 0.42),
+		math.floor(color.B * 255 * 0.42)
+	)
+end
+
+local function addSoftGlow(part, color, brightness, range)
+	local light = Instance.new("PointLight")
+	light.Name = "SoftGlow"
+	light.Color = color
+	light.Brightness = brightness or 0.4
+	light.Range = range or 10
+	light.Parent = part
+	return light
+end
+
 -- Preset themes for the 4 player bases
 PlayerBase.THEMES = {
 	[1] = {
@@ -139,22 +158,23 @@ function PlayerBase:Build(parent)
 	end
 
 	local curbY = curbHeight / 2 + 0.5
-	makeCurb("CurbBack", Vector3.new(0, curbY, -halfSize), Vector3.new(self.size, curbHeight, curbThickness))
+	-- Solid curb at front (toward arena)
+	makeCurb("CurbFront", Vector3.new(0, curbY, halfSize), Vector3.new(self.size, curbHeight, curbThickness))
 	makeCurb("CurbLeft", Vector3.new(-halfSize, curbY, 0), Vector3.new(curbThickness, curbHeight, self.size))
 	makeCurb("CurbRight", Vector3.new(halfSize, curbY, 0), Vector3.new(curbThickness, curbHeight, self.size))
 
-	-- Front curb with 16-stud wide walkway opening
+	-- Back curb with 16-stud wide walkway opening (entrance now at rear)
 	local frontDoorWidth = 16
 	local frontSideWidth = (self.size - frontDoorWidth) / 2
 	local frontSideOffset = (self.size / 2) - (frontSideWidth / 2)
-	makeCurb("CurbFrontLeft", Vector3.new(-frontSideOffset, curbY, halfSize), Vector3.new(frontSideWidth, curbHeight, curbThickness))
-	makeCurb("CurbFrontRight", Vector3.new(frontSideOffset, curbY, halfSize), Vector3.new(frontSideWidth, curbHeight, curbThickness))
+	makeCurb("CurbBackLeft", Vector3.new(-frontSideOffset, curbY, -halfSize), Vector3.new(frontSideWidth, curbHeight, curbThickness))
+	makeCurb("CurbBackRight", Vector3.new(frontSideOffset, curbY, -halfSize), Vector3.new(frontSideWidth, curbHeight, curbThickness))
 
-	-- Entrance Gate Signboard Post (Standing at the front entrance)
+	-- Entrance Gate Signboard Post (Standing at the back entrance)
 	local signPost = Instance.new("Part")
 	signPost.Name = "SignPost"
 	signPost.Size = Vector3.new(1.2, 7, 1.2)
-	signPost.CFrame = baseCFrame * CFrame.new(frontDoorWidth / 2 + 1.2, 3.5, halfSize)
+	signPost.CFrame = baseCFrame * CFrame.new(frontDoorWidth / 2 + 1.2, 3.5, -halfSize)
 	signPost.Anchored = true
 	signPost.Material = Enum.Material.Metal
 	signPost.Color = Color3.fromRGB(30, 30, 30)
@@ -163,7 +183,7 @@ function PlayerBase:Build(parent)
 	local signPart = Instance.new("Part")
 	signPart.Name = "SignPart"
 	signPart.Size = Vector3.new(10, 2.5, 0.8)
-	signPart.CFrame = baseCFrame * CFrame.new(0, 7.5, halfSize)
+	signPart.CFrame = baseCFrame * CFrame.new(0, 7.5, -halfSize)
 	signPart.Anchored = true
 	signPart.Material = Enum.Material.Metal
 	signPart.Color = Color3.fromRGB(30, 30, 30)
@@ -178,46 +198,56 @@ function PlayerBase:Build(parent)
 
 	local signText = Instance.new("TextLabel")
 	signText.Name = "SignText"
-	signText.Size = UDim2.new(1, 0, 1, 0)
-	signText.BackgroundTransparency = 1
+	signText.Size = UDim2.new(1, -10, 1, -6)
+	signText.Position = UDim2.new(0, 5, 0, 3)
+	signText.BackgroundColor3 = Color3.fromRGB(12, 15, 20)
+	signText.BackgroundTransparency = 0.2
 	signText.Font = Enum.Font.GothamBold
 	signText.Text = string.format("%s\n[ Unclaimed ]", self.theme.name)
 	signText.TextColor3 = self.theme.accentColor
+	signText.TextStrokeTransparency = 0.4
 	signText.TextScaled = true
 	signText.Parent = signGui
+
+	local signCorner = Instance.new("UICorner")
+	signCorner.CornerRadius = UDim.new(0, 6)
+	signCorner.Parent = signText
 	self.signLabel = signText
 
-	-- Base SpawnLocation inside (Sanctuary in rear)
+	-- Base SpawnLocation inside (Sanctuary at front, opposite entrance)
 	local spawnPad = Instance.new("SpawnLocation")
 	spawnPad.Name = "BaseSpawn"
 	spawnPad.Size = Vector3.new(8, 0.6, 8)
-	spawnPad.CFrame = baseCFrame * CFrame.new(0, 0.8, -halfSize + 8)
+	spawnPad.CFrame = baseCFrame * CFrame.new(0, 0.8, halfSize - 8)
 	spawnPad.Anchored = true
-	spawnPad.Material = Enum.Material.Neon
-	spawnPad.Color = self.theme.accentColor
+	spawnPad.Material = Enum.Material.SmoothPlastic
+	spawnPad.Color = mutedColor(self.theme.accentColor)
+	addSoftGlow(spawnPad, self.theme.accentColor, 0.3, 8)
 	spawnPad.Neutral = true
 	spawnPad.Enabled = (self.owner == nil)
 	spawnPad.Parent = model
 	self.spawnLocation = spawnPad
 
-	-- Interactive Claim Pad in center of base
+	-- Interactive Claim Pad in back-left corner of base
+	local claimOffset = Vector3.new(-halfSize + 12, 0.8, -halfSize + 12)
 	local claim = Instance.new("Part")
 	claim.Name = "ClaimPad"
 	claim.Shape = Enum.PartType.Cylinder
-	claim.Size = Vector3.new(0.5, 12, 12)
-	claim.CFrame = baseCFrame * CFrame.new(0, 0.8, 0) * CFrame.Angles(0, 0, math.rad(90))
+	claim.Size = Vector3.new(0.5, 7, 7)
+	claim.CFrame = baseCFrame * CFrame.new(claimOffset) * CFrame.Angles(0, 0, math.rad(90))
 	claim.Anchored = true
 	claim.CanCollide = false
-	claim.Material = Enum.Material.Neon
-	claim.Color = Color3.fromRGB(241, 196, 15) -- Gold claim pad
+	claim.Material = Enum.Material.SmoothPlastic
+	claim.Color = Color3.fromRGB(35, 110, 60) -- Lighter green claim pad
+	self.claimGlow = addSoftGlow(claim, Color3.fromRGB(80, 200, 110), 0.5, 10)
 	claim.Parent = model
 	self.claimPad = claim
 
 	local claimRing = Instance.new("Part")
 	claimRing.Name = "ClaimRing"
 	claimRing.Shape = Enum.PartType.Cylinder
-	claimRing.Size = Vector3.new(0.05, 18, 18)
-	claimRing.CFrame = baseCFrame * CFrame.new(0, 0.55, 0) * CFrame.Angles(0, 0, math.rad(90))
+	claimRing.Size = Vector3.new(0.05, 10, 10)
+	claimRing.CFrame = baseCFrame * CFrame.new(claimOffset.X, 0.55, claimOffset.Z) * CFrame.Angles(0, 0, math.rad(90))
 	claimRing.Anchored = true
 	claimRing.CanCollide = false
 	claimRing.Material = Enum.Material.SmoothPlastic
@@ -226,20 +256,27 @@ function PlayerBase:Build(parent)
 
 	local claimBillboard = Instance.new("BillboardGui")
 	claimBillboard.Name = "ClaimBillboard"
-	claimBillboard.Size = UDim2.new(0, 220, 0, 60)
-	claimBillboard.StudsOffset = Vector3.new(0, 5, 0)
-	claimBillboard.AlwaysOnTop = true
+	claimBillboard.Size = UDim2.new(0, 200, 0, 50)
+	claimBillboard.StudsOffset = Vector3.new(0, 4, 0)
+	claimBillboard.AlwaysOnTop = false
 	claimBillboard.Parent = claim
 
 	local claimText = Instance.new("TextLabel")
 	claimText.Name = "ClaimLabel"
-	claimText.Size = UDim2.new(1, 0, 1, 0)
-	claimText.BackgroundTransparency = 1
+	claimText.Size = UDim2.new(1, -8, 1, -4)
+	claimText.Position = UDim2.new(0, 4, 0, 2)
+	claimText.BackgroundColor3 = Color3.fromRGB(12, 15, 20)
+	claimText.BackgroundTransparency = 0.2
 	claimText.Font = Enum.Font.GothamBold
-	claimText.Text = "★ STEP TO CLAIM BASE ★"
-	claimText.TextColor3 = Color3.fromRGB(255, 230, 80)
+	claimText.Text = "★ STEP TO CLAIM ★"
+	claimText.TextColor3 = Color3.fromRGB(80, 200, 110)
+	claimText.TextStrokeTransparency = 0.4
 	claimText.TextScaled = true
 	claimText.Parent = claimBillboard
+
+	local claimTextCorner = Instance.new("UICorner")
+	claimTextCorner.CornerRadius = UDim.new(0, 6)
+	claimTextCorner.Parent = claimText
 	self.claimLabel = claimText
 
 	-- Coin Bank / Vault Pad on the left interior wing
@@ -287,25 +324,33 @@ function PlayerBase:Build(parent)
 	bankLid.Size = Vector3.new(7.6, 0.8, 7.6)
 	bankLid.CFrame = baseCFrame * CFrame.new(-halfSize + 12, 5.5, 0)
 	bankLid.Anchored = true
-	bankLid.Material = Enum.Material.Neon
-	bankLid.Color = self.theme.accentColor
+	bankLid.Material = Enum.Material.SmoothPlastic
+	bankLid.Color = mutedColor(self.theme.accentColor)
+	addSoftGlow(bankLid, self.theme.accentColor, 0.25, 7)
 	bankLid.Parent = model
 
 	local bankLabelGui = Instance.new("BillboardGui")
 	bankLabelGui.Name = "BankLabelGui"
 	bankLabelGui.Size = UDim2.new(0, 160, 0, 45)
 	bankLabelGui.StudsOffset = Vector3.new(0, 4, 0)
-	bankLabelGui.AlwaysOnTop = true
+	bankLabelGui.AlwaysOnTop = false
 	bankLabelGui.Parent = bank
 
 	local bankText = Instance.new("TextLabel")
-	bankText.Size = UDim2.new(1, 0, 1, 0)
-	bankText.BackgroundTransparency = 1
+	bankText.Size = UDim2.new(1, -8, 1, -4)
+	bankText.Position = UDim2.new(0, 4, 0, 2)
+	bankText.BackgroundColor3 = Color3.fromRGB(12, 15, 20)
+	bankText.BackgroundTransparency = 0.2
 	bankText.Font = Enum.Font.GothamBold
 	bankText.Text = "COIN VAULT\n[Step to Deposit]"
-	bankText.TextColor3 = Color3.fromRGB(241, 196, 15)
+	bankText.TextColor3 = Color3.fromRGB(190, 150, 20)
+	bankText.TextStrokeTransparency = 0.4
 	bankText.TextScaled = true
 	bankText.Parent = bankLabelGui
+
+	local bankTextCorner = Instance.new("UICorner")
+	bankTextCorner.CornerRadius = UDim.new(0, 6)
+	bankTextCorner.Parent = bankText
 
 	-- Dedicated Future Activity & Task Zones in the spacious front and side areas
 	local function makeActivityZone(name, offset, labelText)
@@ -335,36 +380,44 @@ function PlayerBase:Build(parent)
 		zoneGui.Parent = zonePad
 
 		local zoneText = Instance.new("TextLabel")
-		zoneText.Size = UDim2.new(1, 0, 1, 0)
-		zoneText.BackgroundTransparency = 1
+		zoneText.Size = UDim2.new(1, -8, 1, -4)
+		zoneText.Position = UDim2.new(0, 4, 0, 2)
+		zoneText.BackgroundColor3 = Color3.fromRGB(12, 15, 20)
+		zoneText.BackgroundTransparency = 0.2
 		zoneText.Font = Enum.Font.GothamMedium
 		zoneText.Text = labelText
-		zoneText.TextColor3 = Color3.fromRGB(180, 190, 205)
+		zoneText.TextColor3 = Color3.fromRGB(200, 210, 220)
+		zoneText.TextStrokeTransparency = 0.4
 		zoneText.TextScaled = true
 		zoneText.Parent = zoneGui
+
+		local zoneTextCorner = Instance.new("UICorner")
+		zoneTextCorner.CornerRadius = UDim.new(0, 6)
+		zoneTextCorner.Parent = zoneText
 
 		return zonePad
 	end
 
-	-- Activity Zone 1 (Right Front Yard - e.g. Upgrades / Tasks)
-	makeActivityZone("ActivityZone_Alpha", Vector3.new(22, 0.6, 20), "ACTIVITY ZONE ALPHA\n[Open for Tasks]")
+	-- Activity Zone 1 (Right Back Yard - e.g. Upgrades / Tasks)
+	makeActivityZone("ActivityZone_Alpha", Vector3.new(22, 0.6, -20), "ACTIVITY ZONE ALPHA\n[Open for Tasks]")
 
-	-- Activity Zone 2 (Left Front Yard - e.g. Workshops / Mini-games)
-	makeActivityZone("ActivityZone_Beta", Vector3.new(-22, 0.6, 20), "ACTIVITY ZONE BETA\n[Open for Tasks]")
+	-- Activity Zone 2 (Left Back Yard - e.g. Workshops / Mini-games)
+	makeActivityZone("ActivityZone_Beta", Vector3.new(-30, 0.6, 24.5), "ACTIVITY ZONE BETA\n[Open for Tasks]")
 
-	-- Activity Zone 3 (Rear Workshop Yard)
-	makeActivityZone("ActivityZone_Gamma", Vector3.new(22, 0.6, -18), "WORKSHOP YARD\n[Open for Future Expansion]")
+	-- Activity Zone 3 (Front Workshop Yard)
+	makeActivityZone("ActivityZone_Gamma", Vector3.new(22, 0.6, 18), "WORKSHOP YARD\n[Open for Future Expansion]")
 
-	-- Interactive Arena Activation Pad (Inside the player's base courtyard)
+	-- Interactive Arena Activation Pad (at the back of base, near entrance)
 	local activatePad = Instance.new("Part")
 	activatePad.Name = "ArenaActivatePad"
 	activatePad.Shape = Enum.PartType.Cylinder
 	activatePad.Size = Vector3.new(0.6, 9, 9)
-	activatePad.CFrame = baseCFrame * CFrame.new(0, 0.8, halfSize - 14) * CFrame.Angles(0, 0, math.rad(90))
+	activatePad.CFrame = baseCFrame * CFrame.new(0, 0.8, -halfSize + 14) * CFrame.Angles(0, 0, math.rad(90))
 	activatePad.Anchored = true
 	activatePad.CanCollide = false
-	activatePad.Material = Enum.Material.Neon
-	activatePad.Color = Color3.fromRGB(46, 204, 113) -- Green ready pad
+	activatePad.Material = Enum.Material.SmoothPlastic
+	activatePad.Color = Color3.fromRGB(28, 125, 68) -- Brighter muted green ready pad
+	self.activateGlow = addSoftGlow(activatePad, Color3.fromRGB(52, 200, 105), 0.7, 12)
 	activatePad.Parent = model
 	self.activatePad = activatePad
 
@@ -372,7 +425,7 @@ function PlayerBase:Build(parent)
 	activateRing.Name = "ActivateRing"
 	activateRing.Shape = Enum.PartType.Cylinder
 	activateRing.Size = Vector3.new(0.1, 11, 11)
-	activateRing.CFrame = baseCFrame * CFrame.new(0, 0.6, halfSize - 14) * CFrame.Angles(0, 0, math.rad(90))
+	activateRing.CFrame = baseCFrame * CFrame.new(0, 0.6, -halfSize + 14) * CFrame.Angles(0, 0, math.rad(90))
 	activateRing.Anchored = true
 	activateRing.CanCollide = false
 	activateRing.Material = Enum.Material.SmoothPlastic
@@ -383,18 +436,25 @@ function PlayerBase:Build(parent)
 	activateGui.Name = "ActivateBillboard"
 	activateGui.Size = UDim2.new(0, 240, 0, 50)
 	activateGui.StudsOffset = Vector3.new(0, 3.5, 0)
-	activateGui.AlwaysOnTop = true
+	activateGui.AlwaysOnTop = false
 	activateGui.Parent = activatePad
 
 	local activateText = Instance.new("TextLabel")
 	activateText.Name = "ActivateText"
-	activateText.Size = UDim2.new(1, 0, 1, 0)
-	activateText.BackgroundTransparency = 1
+	activateText.Size = UDim2.new(1, -8, 1, -4)
+	activateText.Position = UDim2.new(0, 4, 0, 2)
+	activateText.BackgroundColor3 = Color3.fromRGB(12, 15, 20)
+	activateText.BackgroundTransparency = 0.2
 	activateText.Font = Enum.Font.GothamBold
 	activateText.Text = "⚡ START ARENA RUN ⚡\n[Step to Open Gate]"
-	activateText.TextColor3 = Color3.fromRGB(46, 204, 113)
+	activateText.TextColor3 = Color3.fromRGB(50, 185, 100)
+	activateText.TextStrokeTransparency = 0.4
 	activateText.TextScaled = true
 	activateText.Parent = activateGui
+
+	local activateTextCorner = Instance.new("UICorner")
+	activateTextCorner.CornerRadius = UDim.new(0, 6)
+	activateTextCorner.Parent = activateText
 	self.activateLabel = activateText
 
 	-- Connect Claim Pad Touched
@@ -488,7 +548,10 @@ function PlayerBase:SetOwner(player)
 	end
 
 	if self.claimPad then
-		self.claimPad.Color = self.theme.accentColor
+		self.claimPad.Color = mutedColor(self.theme.accentColor)
+	end
+	if self.claimGlow then
+		self.claimGlow.Color = self.theme.accentColor
 	end
 
 	if self.spawnLocation then
@@ -512,12 +575,15 @@ function PlayerBase:ClearOwner()
 	end
 
 	if self.claimLabel then
-		self.claimLabel.Text = "★ STEP TO CLAIM BASE ★"
-		self.claimLabel.TextColor3 = Color3.fromRGB(255, 230, 80)
+		self.claimLabel.Text = "★ STEP TO CLAIM ★"
+		self.claimLabel.TextColor3 = Color3.fromRGB(80, 200, 110)
 	end
 
 	if self.claimPad then
-		self.claimPad.Color = Color3.fromRGB(241, 196, 15)
+		self.claimPad.Color = Color3.fromRGB(35, 110, 60)
+	end
+	if self.claimGlow then
+		self.claimGlow.Color = Color3.fromRGB(80, 200, 110)
 	end
 
 	if self.spawnLocation then
@@ -575,22 +641,22 @@ function PlayerBase:BuildWalls(customWallHeight, customWallColor)
 		return wall
 	end
 
-	-- Back wall
-	makeWallSegment("BackWall", Vector3.new(0, wallY, -halfSize - wallThickness / 2), Vector3.new(self.size + wallThickness * 2, height, wallThickness))
+	-- Front wall (solid, toward arena)
+	makeWallSegment("FrontWall", Vector3.new(0, wallY, halfSize + wallThickness / 2), Vector3.new(self.size + wallThickness * 2, height, wallThickness))
 	-- Left wall
 	makeWallSegment("LeftWall", Vector3.new(-halfSize - wallThickness / 2, wallY, 0), Vector3.new(wallThickness, height, self.size))
 	-- Right wall
 	makeWallSegment("RightWall", Vector3.new(halfSize + wallThickness / 2, wallY, 0), Vector3.new(wallThickness, height, self.size))
 
-	-- Front wall with entrance opening
+	-- Back wall with entrance opening (entrance now at rear)
 	local doorWidth = 16
 	local sideWidth = (self.size - doorWidth) / 2
 	local sideOffset = (self.size / 2) - (sideWidth / 2)
-	makeWallSegment("FrontLeftWall", Vector3.new(-sideOffset, wallY, halfSize + wallThickness / 2), Vector3.new(sideWidth, height, wallThickness))
-	makeWallSegment("FrontRightWall", Vector3.new(sideOffset, wallY, halfSize + wallThickness / 2), Vector3.new(sideWidth, height, wallThickness))
+	makeWallSegment("BackLeftWall", Vector3.new(-sideOffset, wallY, -halfSize - wallThickness / 2), Vector3.new(sideWidth, height, wallThickness))
+	makeWallSegment("BackRightWall", Vector3.new(sideOffset, wallY, -halfSize - wallThickness / 2), Vector3.new(sideWidth, height, wallThickness))
 
-	-- Arch over base entrance
-	local arch = makeWallSegment("EntranceArch", Vector3.new(0, height - 0.5, halfSize + wallThickness / 2), Vector3.new(doorWidth, 2, wallThickness), self.theme.accentColor)
+	-- Arch over base entrance (at rear)
+	local arch = makeWallSegment("EntranceArch", Vector3.new(0, height - 0.5, -halfSize - wallThickness / 2), Vector3.new(doorWidth, 2, wallThickness), self.theme.accentColor)
 
 	self.hasWalls = true
 	self.model:SetAttribute("HasWalls", true)
@@ -608,15 +674,30 @@ function PlayerBase:ClearWalls()
 end
 
 function PlayerBase:SetActivatePadState(statusText, color, canTouch)
+	local padColor = color or Color3.fromRGB(46, 204, 113)
+	-- Active state uses a lighter mute so the pad reads as brighter/more inviting
+	local activeMuted = Color3.fromRGB(
+		math.floor(padColor.R * 255 * 0.60),
+		math.floor(padColor.G * 255 * 0.60),
+		math.floor(padColor.B * 255 * 0.60)
+	)
 	if self.activatePad then
-		self.activatePad.Color = color or Color3.fromRGB(46, 204, 113)
+		self.activatePad.Color = activeMuted
 		if canTouch ~= nil then
 			self.activatePad.CanTouch = canTouch
 		end
 	end
+	if self.activateGlow then
+		self.activateGlow.Color = padColor
+		self.activateGlow.Brightness = canTouch and 0.7 or 0.45
+	end
 	if self.activateLabel then
 		self.activateLabel.Text = statusText
-		self.activateLabel.TextColor3 = color or Color3.fromRGB(46, 204, 113)
+		self.activateLabel.TextColor3 = Color3.fromRGB(
+			math.floor(padColor.R * 255 * 0.85),
+			math.floor(padColor.G * 255 * 0.85),
+			math.floor(padColor.B * 255 * 0.85)
+		)
 	end
 end
 

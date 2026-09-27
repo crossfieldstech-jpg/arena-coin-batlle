@@ -64,8 +64,8 @@ function GateController:_build()
 		bar.CFrame = info.closedCFrame
 		bar.Anchored = true
 		bar.CanCollide = false
-		bar.Material = Enum.Material.Neon
-		bar.Color = Color3.fromRGB(231, 76, 60)
+		bar.Material = Enum.Material.SmoothPlastic
+		bar.Color = Color3.fromRGB(90, 30, 25)
 		bar.Parent = model
 
 		-- Status indicator above gate opening
@@ -75,8 +75,8 @@ function GateController:_build()
 		indicator.CFrame = info.closedCFrame * CFrame.new(0, (info.size.Y / 2) + 0.6, 0)
 		indicator.Anchored = true
 		indicator.CanCollide = false
-		indicator.Material = Enum.Material.Neon
-		indicator.Color = Color3.fromRGB(231, 76, 60)
+		indicator.Material = Enum.Material.SmoothPlastic
+		indicator.Color = Color3.fromRGB(90, 30, 25)
 		indicator.Parent = model
 
 		-- Entrance sensor zone for verifying player ownership and preventing unauthorized entry
@@ -93,7 +93,7 @@ function GateController:_build()
 		pointLight.Name = "StatusLight"
 		pointLight.Color = Color3.fromRGB(231, 76, 60)
 		pointLight.Range = 14
-		pointLight.Brightness = 2
+		pointLight.Brightness = 0.5
 		pointLight.Parent = indicator
 
 		table.insert(self.doors, {
@@ -113,11 +113,11 @@ function GateController:_build()
 end
 
 function GateController:_applyVisualState(state, specificItem)
-	local color = Color3.fromRGB(46, 204, 113) -- Green for Open
+	local color = Color3.fromRGB(22, 100, 55) -- Muted green for Open
 	if state == GateController.State.Closed then
-		color = Color3.fromRGB(231, 76, 60) -- Red for Locked
+		color = Color3.fromRGB(90, 30, 25) -- Muted red for Locked
 	elseif state == GateController.State.Opening or state == GateController.State.Closing then
-		color = Color3.fromRGB(241, 196, 15) -- Yellow while transitioning
+		color = Color3.fromRGB(95, 76, 15) -- Muted yellow while transitioning
 	end
 
 	local targetList = specificItem and { specificItem } or self.doors
