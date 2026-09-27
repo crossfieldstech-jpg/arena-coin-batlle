@@ -19,7 +19,7 @@ A modular Roblox multiplayer game where up to 4 players maintain their own bases
 - `BASE_INSTRUCTIONS.md` - Dedicated player base guide & future customization specifications
 - `src/ReplicatedStorage/Coin.lua` - Coin class handling shape, size, color, value, and touch pickups
 - `src/ReplicatedStorage/CoinConfig.lua` - Central configuration module and default parameters
-- `src/ReplicatedStorage/ArenaEnclosure.lua` - Procedural arena construction, pathways, and 4 cardinal ejection pads
+- `src/ReplicatedStorage/ArenaEnclosure.lua` - Procedural arena construction, highways to bases, and ejection handling
 - `src/ReplicatedStorage/GateController.lua` - Animated sliding gate controller with status indicators and state management
 - `src/ReplicatedStorage/GateUnlockTrigger.lua` - Pluggable gate unlock trigger manager (dynamic timers, attribute flags, custom triggers)
 - `src/ReplicatedStorage/PlayerBase.lua` - Modular player base class: claim pad, coin bank, launch pad, and dynamic attributes

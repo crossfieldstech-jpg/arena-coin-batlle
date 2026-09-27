@@ -58,18 +58,6 @@ function ArenaEnclosure:Build()
 	floor.BottomSurface = Enum.SurfaceType.Smooth
 	floor.Parent = container
 
-	-- Center emblem ring in the middle of the arena
-	local ring = Instance.new("Part")
-	ring.Name = "CenterEmblem"
-	ring.Shape = Enum.PartType.Cylinder
-	ring.Size = Vector3.new(0.1, 16, 16)
-	ring.CFrame = CFrame.new(self.center + Vector3.new(0, 0.55, 0)) * CFrame.Angles(0, 0, math.rad(90))
-	ring.Anchored = true
-	ring.CanCollide = false
-	ring.Material = Enum.Material.Neon
-	ring.Color = Color3.fromRGB(241, 196, 15) -- Golden center emblem
-	ring.Parent = container
-
 	-- Invisible Ceiling Barrier Enclosure (fully seals arena top)
 	local ceiling = Instance.new("Part")
 	ceiling.Name = "ArenaCeiling"
@@ -278,89 +266,6 @@ function ArenaEnclosure:Build()
 	-- West highway
 	makePart("Road_West", Vector3.new(highwayLength, 1, roadWidth), CFrame.new(-highwayCenterDist, 0, 0), Color3.fromRGB(64, 70, 78), Enum.Material.SmoothPlastic)
 
-	-- Outer perimeter connecting ring (crosswalk between ejection zones)
-	local ringDistance = self.ejectionDistance + 14
-	local ringThickness = 8
-	makePart("Ring_North", Vector3.new(ringDistance * 2 + ringThickness, 1, ringThickness), CFrame.new(0, 0, -ringDistance), Color3.fromRGB(50, 55, 62), Enum.Material.SmoothPlastic)
-	makePart("Ring_South", Vector3.new(ringDistance * 2 + ringThickness, 1, ringThickness), CFrame.new(0, 0, ringDistance), Color3.fromRGB(50, 55, 62), Enum.Material.SmoothPlastic)
-	makePart("Ring_East", Vector3.new(ringThickness, 1, ringDistance * 2 + ringThickness), CFrame.new(ringDistance, 0, 0), Color3.fromRGB(50, 55, 62), Enum.Material.SmoothPlastic)
-	makePart("Ring_West", Vector3.new(ringThickness, 1, ringDistance * 2 + ringThickness), CFrame.new(-ringDistance, 0, 0), Color3.fromRGB(50, 55, 62), Enum.Material.SmoothPlastic)
-
-	-- 4. Four Ejection Spawn Points outside each arena gate (North, South, East, West)
-	local ejectionConfig = {
-		{
-			id = 1,
-			name = "Ejection_North",
-			direction = "North",
-			pos = Vector3.new(0, 0.6, -self.ejectionDistance),
-			faceAngle = 180, -- Facing North toward North Base
-			color = Color3.fromRGB(41, 128, 185), -- Blue
-		},
-		{
-			id = 2,
-			name = "Ejection_South",
-			direction = "South",
-			pos = Vector3.new(0, 0.6, self.ejectionDistance),
-			faceAngle = 0, -- Facing South toward South Base
-			color = Color3.fromRGB(39, 174, 96), -- Green
-		},
-		{
-			id = 3,
-			name = "Ejection_East",
-			direction = "East",
-			pos = Vector3.new(self.ejectionDistance, 0.6, 0),
-			faceAngle = 90, -- Facing East toward East Base
-			color = Color3.fromRGB(230, 126, 34), -- Amber
-		},
-		{
-			id = 4,
-			name = "Ejection_West",
-			direction = "West",
-			pos = Vector3.new(-self.ejectionDistance, 0.6, 0),
-			faceAngle = -90, -- Facing West toward West Base
-			color = Color3.fromRGB(142, 68, 173), -- Purple
-		},
-	}
-
-	for _, cfg in ipairs(ejectionConfig) do
-		local pad = Instance.new("Part")
-		pad.Name = cfg.name
-		pad.Size = Vector3.new(8, 0.6, 8)
-		pad.Position = self.center + cfg.pos
-		pad.Anchored = true
-		pad.Material = Enum.Material.Neon
-		pad.Color = cfg.color
-		pad.TopSurface = Enum.SurfaceType.Smooth
-		pad.BottomSurface = Enum.SurfaceType.Smooth
-		pad.Parent = container
-
-		local billboard = Instance.new("BillboardGui")
-		billboard.Name = "EjectionLabel"
-		billboard.Size = UDim2.new(0, 160, 0, 40)
-		billboard.StudsOffset = Vector3.new(0, 3, 0)
-		billboard.AlwaysOnTop = true
-		billboard.Parent = pad
-
-		local text = Instance.new("TextLabel")
-		text.Size = UDim2.new(1, 0, 1, 0)
-		text.BackgroundTransparency = 1
-		text.Font = Enum.Font.GothamBold
-		text.Text = string.format("EJECTION POINT\n[%s]", cfg.direction)
-		text.TextColor3 = cfg.color
-		text.TextScaled = true
-		text.Parent = billboard
-
-		local spawnCFrame = CFrame.new(pad.Position + Vector3.new(0, 2.5, 0)) * CFrame.Angles(0, math.rad(cfg.faceAngle), 0)
-
-		table.insert(self.ejectionPads, {
-			id = cfg.id,
-			direction = cfg.direction,
-			pad = pad,
-			position = pad.Position,
-			cframe = spawnCFrame,
-		})
-	end
-
 	self:UpdateDisplayBoards("", 0, false)
 
 	return self
@@ -401,18 +306,47 @@ end
 
 -- Returns the ejection point closest to a given position (such as the player's base)
 function ArenaEnclosure:GetClosestEjectionPoint(targetPosition)
-	local closestPoint = self.ejectionPads[1]
-	local closestDist = math.huge
+	if #self.ejectionPads > 0 then
+		local closestPoint = self.ejectionPads[1]
+		local closestDist = math.huge
 
-	for _, pt in ipairs(self.ejectionPads) do
-		local dist = (pt.position - targetPosition).Magnitude
-		if dist < closestDist then
-			closestDist = dist
-			closestPoint = pt
+		for _, pt in ipairs(self.ejectionPads) do
+			local dist = (pt.position - targetPosition).Magnitude
+			if dist < closestDist then
+				closestDist = dist
+				closestPoint = pt
+			end
+		end
+
+		return closestPoint
+	end
+
+	-- Fallback to nearest gate approach point
+	local nearestGate = nil
+	local nearestDist = math.huge
+	for _, gateInfo in ipairs(self.gatesInfo) do
+		local dist = (gateInfo.closedCFrame.Position - targetPosition).Magnitude
+		if dist < nearestDist then
+			nearestDist = dist
+			nearestGate = gateInfo
 		end
 	end
 
-	return closestPoint
+	if nearestGate then
+		local fallbackCFrame = nearestGate.closedCFrame * CFrame.new(0, 2, 16)
+		return {
+			direction = nearestGate.direction,
+			position = fallbackCFrame.Position,
+			cframe = fallbackCFrame,
+		}
+	end
+
+	local fallbackCFrame = CFrame.new(self.center + Vector3.new(0, 2, self.sizeZ / 2 + 16))
+	return {
+		direction = "South",
+		position = fallbackCFrame.Position,
+		cframe = fallbackCFrame,
+	}
 end
 
 function ArenaEnclosure:IsInside(position)
@@ -439,34 +373,50 @@ function ArenaEnclosure:GetPlayersInside(ignorePlayer)
 	return insidePlayers
 end
 
--- Ejects players inside the arena to the ejection spawn point closest to their assigned base (or current position)
-function ArenaEnclosure:EjectPlayers(getPlayerTargetPosFn, ignorePlayer)
+-- Ejects players inside the arena to their home bases or nearest gate exterior approach
+function ArenaEnclosure:EjectPlayers(getPlayerTargetCFrameFn, ignorePlayer)
 	local ejected = {}
 
 	for _, player in ipairs(self:GetPlayersInside(ignorePlayer)) do
 		local character = player.Character
 		if character then
 			local root = character:FindFirstChild("HumanoidRootPart")
-			if root then
-				local targetPos = nil
-				if getPlayerTargetPosFn then
-					targetPos = getPlayerTargetPosFn(player)
+			local humanoid = character:FindFirstChildOfClass("Humanoid")
+			if root and humanoid and humanoid.Health > 0 then
+				local target = getPlayerTargetCFrameFn and getPlayerTargetCFrameFn(player)
+				local targetCFrame = nil
+
+				if typeof(target) == "CFrame" then
+					targetCFrame = target
+				elseif typeof(target) == "Vector3" then
+					targetCFrame = CFrame.new(target + Vector3.new(0, 3, 0))
 				end
 
-				-- If player has no assigned base, default to their current position
-				if not targetPos then
-					targetPos = root.Position
+				if not targetCFrame then
+					local nearestGate = nil
+					local nearestDist = math.huge
+					for _, gateInfo in ipairs(self.gatesInfo) do
+						local dist = (gateInfo.closedCFrame.Position - root.Position).Magnitude
+						if dist < nearestDist then
+							nearestDist = dist
+							nearestGate = gateInfo
+						end
+					end
+
+					if nearestGate then
+						targetCFrame = nearestGate.closedCFrame * CFrame.new(math.random(-2, 2), 2, 16)
+					else
+						targetCFrame = CFrame.new(self.center + Vector3.new(0, 3, self.sizeZ / 2 + 16))
+					end
 				end
 
-				local ejectionPt = self:GetClosestEjectionPoint(targetPos)
-				local spread = Vector3.new(math.random(-2, 2), 0, math.random(-2, 2))
-				root.CFrame = ejectionPt.cframe + spread
+				root.CFrame = targetCFrame
 				root.AssemblyLinearVelocity = Vector3.zero
 				root.AssemblyAngularVelocity = Vector3.zero
 
 				table.insert(ejected, {
 					player = player,
-					ejectionDirection = ejectionPt.direction,
+					targetCFrame = targetCFrame,
 				})
 			end
 		end

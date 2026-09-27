@@ -44,7 +44,7 @@ Each base is zoned into functional open activity areas:
   - While active: The active player's pad displays `RUN IN PROGRESS [Arena Active]`, and all other player pads turn red and display `ARENA OCCUPIED [[PlayerName] Playing]` (disabled, `CanTouch = false`).
 - No other player can enter the arena through the active player's gate. If another player tries to walk through, the security sensor detects them and teleports them back to their home base spawn pad.
 - **Round Completion, Player Ejection & Immediate Door Closure**:
-  - When the run ends (all coins collected or 30s timer expired), the active runner is immediately **ejected back to their home base spawn pad** (without killing/reloading character), and any remaining players inside the arena are ejected to exterior pads.
+  - When the run ends (all coins collected or 30s timer expired), the active runner is immediately **ejected back to their home base spawn pad** (without killing/reloading character), and any remaining players inside the arena are ejected to their home bases or nearest gate exterior approach pathways.
   - The arena door **closes immediately upon ejection** and locks.
   - **Runner Base Activation Plate Deactivated**: The ejected runner's base activation plate is **not left active or enabled**. It immediately switches to cooldown (`RunnerCooldown`, default 10s), disabling touches (`CanTouch = false`) and displaying `COOLDOWN [Xs] [Other Players First]` in yellow.
   - **Immediate Opportunity for Other Players**: Other waiting players' base activation plates are **immediately enabled** (`CanTouch = true`, green `⚡ START ARENA RUN ⚡`), allowing any other player to step on their pad and start their base's arena run right away.
@@ -133,13 +133,9 @@ Developers can release items or adjust game balance with zero UI or network code
 
 When the central coin collection arena in the middle of the map is cleared and all 4 gates lock:
 1. The server detects every player currently inside the central coin collection area.
-2. Four dedicated **Ejection Pads** are positioned just outside each of the 4 arena gates:
-   - **`Ejection_North`** (located at $z = -54$, facing North toward North Base)
-   - **`Ejection_South`** (located at $z = +54$, facing South toward South Base)
-   - **`Ejection_East`** (located at $x = +54$, facing East toward East Base)
-   - **`Ejection_West`** (located at $x = -54$, facing West toward West Base)
-3. Each player is teleported to the ejection pad **closest to their owned base**, oriented facing directly down the highway toward their base.
-4. Players can immediately run back to their home base away from the arena, deposit coins into their bank vault, upgrade their multiplier, and await the next round!
+2. Players with an owned base are teleported directly back to their home base spawn pad (`ownedBase:GetSpawnCFrame()`), with linear and angular velocities reset to zero.
+3. Any unassigned players or intruders without a base are safely ejected just outside the nearest arena gate along the approach highway facing away from the arena.
+4. Players can immediately deposit coins into their bank vault, upgrade their multiplier, and await the next round!
 
 ---
 
@@ -155,7 +151,7 @@ All base dimensions, distances, and starting variables can be tuned in [src/Repl
 | `BaseDistance` | `140` | Studs from arena center $(0,0,0)$ to the center of each player base (spacious separation) |
 | `BaseSize` | `84` | Dimensions of each player base platform (expanded 3x from 28 to 84 studs) |
 | `BaseWallHeight` | `9` | Wall height when constructed by player via tasks/upgrades |
-| `BaseEjectionDistance` | `54` | Distance from arena center to the 4 ejection spawn points (just outside arena gates) |
+| `BaseEjectionDistance` | `54` | Distance fallback from arena center for gate approach clearance |
 | `BaseStartingLevel` | `1` | Default starting level for newly claimed bases |
 | `BaseStartingMultiplier`| `1.0` | Default multiplier applied to coins collected by base owners |
 | `BaseBankCapacity` | `500` | Starting maximum storage limit for base vaults |

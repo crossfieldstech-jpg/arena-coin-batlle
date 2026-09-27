@@ -103,7 +103,7 @@ coin-collector/
     ├── ReplicatedStorage/
     │   ├── Coin.lua                       # Coin OOP class: geometry, spin, light, collection callback
     │   ├── CoinConfig.lua                 # Settings defaults & live attribute sync
-    │   ├── ArenaEnclosure.lua             # Procedural arena walls, highways, and ejection pads
+    │   ├── ArenaEnclosure.lua             # Procedural arena walls, highways, and ejection routing
     │   ├── GateController.lua             # TweenService 4-gate synchronizer & neon lights
     │   └── PlayerBase.lua                 # Modular player base class: claim pad, bank vault, launch pad
     ├── ServerScriptService/

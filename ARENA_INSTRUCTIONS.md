@@ -18,7 +18,6 @@ The coin collection arena is located at the center of the world (`0, 0, 0`), sur
 - **Corner Cornerstones**: $6 \times 6$ stud reinforced pillars at all 4 corners.
 - **Gate Openings**: 4 openings (North, South, East, West), each 14 studs wide and 14 studs high.
 - **Approach Highways**: 14-stud wide paved pathways extending outward from each gate directly connecting to the 4 player bases at 140 studs away.
-- **Connecting Ring**: An outer perimeter pathway encircling the arena for cross-quadrant navigation between bases.
 
 ---
 
@@ -31,7 +30,7 @@ The arena entrance is governed by 4 sliding gates managed by [src/ReplicatedStor
 - **Solo Gate Activation**: A player steps on their base's **Arena Activation Pad** (`ArenaActivatePad`) to start their run.
 - **Single Gate Opening**: **Only the gate leading to the activating player's base slides open** (green lights). All other 3 gates remain shut and locked (red lights).
 - **Exclusive Entry Verification**: An invisible gate sensor strictly verifies player identity. If any other player attempts to enter the open gate, they are prevented from entering and teleported back to their own base spawn pad.
-- **Intruder Ejection**: Any unauthorized players lingering inside the central arena enclosure when a run is initiated are immediately ejected to their respective base ejection pads.
+- **Intruder Ejection**: Any unauthorized players lingering inside the central arena enclosure when a run is initiated are immediately ejected to their respective bases or gate approach pathways.
 - **Coin Expiration Countdown**: The player has `CoinExpirationTime` seconds (default: 30s) to enter and collect coins.
 - **Gate Travel & Indicators**:
   - 🟢 **Neon Green**: Gate is **Open** for the activating base owner.
@@ -96,7 +95,7 @@ A run concludes when either:
 3. **Player Disconnect**: The active player leaves the experience.
 
 ### 4. Player Ejection, Immediate Door Closure & Reset
-- **Instant Player Ejection**: When the run ends (timer expired or coins cleared), the active runner is immediately teleported back to their home base spawn pad, and any remaining players inside the central arena enclosure are ejected to the exterior ejection pads.
+- **Instant Player Ejection**: When the run ends (timer expired or coins cleared), the active runner is immediately teleported back to their home base spawn pad, and any remaining players inside the central arena enclosure are ejected to their home bases or nearest gate approach pathways.
 - **Door Closes Immediately on Ejection**: As soon as the player is ejected, the open gate smoothly slides shut and locks (`CanCollide = true`, indicator red). A guaranteed completion fallback prevents the door from remaining open after the run.
 - **Runner Base Activation Plate Deactivation**: The previous runner's base activation plate is **not left active or enabled**. It is immediately set to cooldown (`RunnerCooldown`, default: 10s) and disabled (`CanTouch = false`), displaying `COOLDOWN [Xs] [Other Players First]` in yellow.
 - **Advantage for Other Players**: Other waiting players' activation plates are **immediately enabled** (green `⚡ START ARENA RUN ⚡`, `CanTouch = true`), giving other players the immediate opportunity to initialize the next coin collection run.

@@ -278,15 +278,18 @@ function onArenaCleared(reason)
 	-- 1. Immediately eject player(s) from the arena
 	if runnerToReset and runnerToReset.Parent and runnerBase then
 		if runnerToReset.Character and runnerToReset.Character:FindFirstChild("HumanoidRootPart") then
-			runnerToReset.Character.HumanoidRootPart.CFrame = runnerBase:GetSpawnCFrame()
+			local root = runnerToReset.Character.HumanoidRootPart
+			root.CFrame = runnerBase:GetSpawnCFrame()
+			root.AssemblyLinearVelocity = Vector3.zero
+			root.AssemblyAngularVelocity = Vector3.zero
 		end
 	end
 
-	-- Eject any remaining players inside the arena to exterior ejection pads
+	-- Eject any remaining players inside the arena to their bases or gate approach pathways
 	enclosure:EjectPlayers(function(player)
 		local base = playerToBaseMap[player]
 		if base then
-			return base:GetPosition()
+			return base:GetSpawnCFrame()
 		end
 		return nil
 	end)
@@ -342,7 +345,7 @@ local function startSoloArenaRun(player, base)
 	enclosure:EjectPlayers(function(intruder)
 		local ownedBase = playerToBaseMap[intruder]
 		if ownedBase then
-			return ownedBase:GetPosition()
+			return ownedBase:GetSpawnCFrame()
 		end
 		return nil
 	end, player)
