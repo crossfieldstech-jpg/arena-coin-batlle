@@ -126,6 +126,12 @@ local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(0, 8)
 closeCorner.Parent = closeButton
 
+local closeStroke = Instance.new("UIStroke")
+closeStroke.Color = Color3.fromRGB(75, 85, 100)
+closeStroke.Thickness = 1.5
+closeStroke.Transparency = 0.3
+closeStroke.Parent = closeButton
+
 -- Summary Info Bar
 local summaryBar = Instance.new("Frame")
 summaryBar.Name = "SummaryBar"
@@ -144,7 +150,7 @@ summaryLabel.Name = "SummaryLabel"
 summaryLabel.Size = UDim2.new(1, -20, 1, 0)
 summaryLabel.Position = UDim2.new(0, 10, 0, 0)
 summaryLabel.BackgroundTransparency = 1
-summaryLabel.Font = Enum.Font.GothamSemibold
+summaryLabel.Font = Enum.Font.GothamBold
 summaryLabel.Text = "Total Unique Types: 0"
 summaryLabel.TextColor3 = Color3.fromRGB(209, 213, 219)
 summaryLabel.TextSize = 13

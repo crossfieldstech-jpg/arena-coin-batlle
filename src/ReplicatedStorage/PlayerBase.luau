@@ -170,11 +170,11 @@ function PlayerBase:Build(parent)
 	makeCurb("CurbBackLeft", Vector3.new(-frontSideOffset, curbY, -halfSize), Vector3.new(frontSideWidth, curbHeight, curbThickness))
 	makeCurb("CurbBackRight", Vector3.new(frontSideOffset, curbY, -halfSize), Vector3.new(frontSideWidth, curbHeight, curbThickness))
 
-	-- Entrance Gate Signboard Post (Standing at the back entrance)
+	-- Entrance Gate Signboard Post (Standing at the front entrance)
 	local signPost = Instance.new("Part")
 	signPost.Name = "SignPost"
 	signPost.Size = Vector3.new(1.2, 7, 1.2)
-	signPost.CFrame = baseCFrame * CFrame.new(frontDoorWidth / 2 + 1.2, 3.5, -halfSize)
+	signPost.CFrame = baseCFrame * CFrame.new(frontDoorWidth / 2 + 1.2, 3.5, halfSize)
 	signPost.Anchored = true
 	signPost.Material = Enum.Material.Metal
 	signPost.Color = Color3.fromRGB(30, 30, 30)
@@ -183,7 +183,7 @@ function PlayerBase:Build(parent)
 	local signPart = Instance.new("Part")
 	signPart.Name = "SignPart"
 	signPart.Size = Vector3.new(10, 2.5, 0.8)
-	signPart.CFrame = baseCFrame * CFrame.new(0, 7.5, -halfSize)
+	signPart.CFrame = baseCFrame * CFrame.new(0, 7.5, halfSize)
 	signPart.Anchored = true
 	signPart.Material = Enum.Material.Metal
 	signPart.Color = Color3.fromRGB(30, 30, 30)
