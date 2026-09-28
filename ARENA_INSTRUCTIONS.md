@@ -72,13 +72,13 @@ Precious gems inside the arena are completely decoupled from coins and managed v
 - **Floating Bob**: Independent sinusoidal vertical floating oscillation.
 
 ### Gem Tiers & Drop Tables
-Instead of individual per-item rolls, gems spawn as an all-gem jackpot round 1 in 5 times (20% random chance per round determined by `SpawnRate = 0.2`). When a jackpot round occurs, all spawned items in the arena become gems across 3 tiers with a $1.2\times$ base value scale:
+Instead of individual per-item rolls, gems spawn as an all-gem jackpot round 1 in 5 times (20% random chance per round determined by `SpawnRate = 0.2`). When a jackpot round occurs, all spawned items in the arena become gems across 3 tiers with a $2.0\times$ base value scale (2x of coin tiers):
 
 | Tier | Color | Base Value | Weight (Spawn Chance) | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| **Emerald** (Standard) | Emerald Green (`46, 204, 113`) | `1.2` | 60% (Weight: 60) | Vivid common gemstone |
-| **Sapphire** (Silver) | Sapphire Blue (`52, 152, 219`) | `3.6` | 30% (Weight: 30) | Sparkling uncommon gemstone |
-| **Ruby** (Mega) | Ruby Red (`231, 76, 60`) | `12.0` | 10% (Weight: 10) | Radiant high-value gemstone |
+| **Emerald** (Standard) | Emerald Green (`46, 204, 113`) | `2.0` | 60% (Weight: 60) | Vivid common gemstone (2x Standard Coin) |
+| **Sapphire** (Silver) | Sapphire Blue (`52, 152, 219`) | `6.0` | 30% (Weight: 30) | Sparkling uncommon gemstone (2x Silver Coin) |
+| **Ruby** (Mega) | Ruby Red (`231, 76, 60`) | `20.0` | 10% (Weight: 10) | Radiant high-value gemstone (2x Mega Coin) |
 
 ---
 
@@ -154,13 +154,13 @@ Independent economy attributes attached to `ReplicatedStorage.GemSettings`:
 | :--- | :--- | :--- | :--- |
 | `Enabled` | boolean | `true` | Toggle whether gems spawn in the arena |
 | `SpawnRate` | number | `0.2` | Probability (0.0 to 1.0) of spawning an all-gem jackpot round instead of coins (1 in 5 = 0.2) |
-| `ValueMultiplier` | number | `1.2` | Base multiplier scale for gems vs coin tiers |
+| `ValueMultiplier` | number | `2.0` | Base multiplier scale for gems vs coin tiers |
 | `RespawnDelay` | number | `2` | Delay in seconds for trickle respawn mode |
-| `Standard_Value` | number | `1.2` | Value awarded for Emerald gems |
+| `Standard_Value` | number | `2.0` | Value awarded for Emerald gems |
 | `Standard_Weight` | number | `60` | Spawn weight for Emerald gems |
-| `Silver_Value` | number | `3.6` | Value awarded for Sapphire gems |
+| `Silver_Value` | number | `6.0` | Value awarded for Sapphire gems |
 | `Silver_Weight` | number | `30` | Spawn weight for Sapphire gems |
-| `Mega_Value` | number | `12.0` | Value awarded for Ruby gems |
+| `Mega_Value` | number | `20.0` | Value awarded for Ruby gems |
 | `Mega_Weight` | number | `10` | Spawn weight for Ruby gems |
 
 ---
