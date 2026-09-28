@@ -1,4 +1,5 @@
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
@@ -9,11 +10,12 @@ screenGui.Parent = playerGui
 
 local panel = Instance.new("Frame")
 panel.Name = "Panel"
-panel.Size = UDim2.new(0, 210, 0, 96)
+panel.Size = UDim2.new(0, 210, 0, 52)
 panel.Position = UDim2.new(1, -230, 0, 18)
 panel.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 panel.BackgroundTransparency = 0.18
 panel.BorderSizePixel = 0
+panel.ClipsDescendants = true
 panel.Parent = screenGui
 
 local corner = Instance.new("UICorner")
@@ -37,7 +39,7 @@ countLabel.Name = "Count"
 countLabel.Size = UDim2.new(1, -20, 0, 20)
 countLabel.Position = UDim2.new(0, 10, 0, 24)
 countLabel.BackgroundTransparency = 1
-countLabel.Font = Enum.Font.GothamSemibold
+countLabel.Font = Enum.Font.GothamMedium
 countLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 countLabel.TextSize = 20
 countLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -53,6 +55,7 @@ gemTitle.Text = "Gems"
 gemTitle.TextColor3 = Color3.fromRGB(80, 220, 255)
 gemTitle.TextSize = 16
 gemTitle.TextXAlignment = Enum.TextXAlignment.Left
+gemTitle.Visible = false
 gemTitle.Parent = panel
 
 local gemCountLabel = Instance.new("TextLabel")
@@ -60,11 +63,42 @@ gemCountLabel.Name = "GemCount"
 gemCountLabel.Size = UDim2.new(1, -20, 0, 20)
 gemCountLabel.Position = UDim2.new(0, 10, 0, 66)
 gemCountLabel.BackgroundTransparency = 1
-gemCountLabel.Font = Enum.Font.GothamSemibold
+gemCountLabel.Font = Enum.Font.GothamMedium
 gemCountLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 gemCountLabel.TextSize = 20
 gemCountLabel.TextXAlignment = Enum.TextXAlignment.Left
+gemCountLabel.Visible = false
 gemCountLabel.Parent = panel
+
+local function updateRoundVisibility(coinSettings)
+	local isGemRound = false
+	if coinSettings then
+		isGemRound = coinSettings:GetAttribute("IsGemRound") == true
+	end
+
+	if isGemRound then
+		gemTitle.Visible = true
+		gemCountLabel.Visible = true
+		panel.Size = UDim2.new(0, 210, 0, 96)
+	else
+		gemTitle.Visible = false
+		gemCountLabel.Visible = false
+		panel.Size = UDim2.new(0, 210, 0, 52)
+	end
+end
+
+task.spawn(function()
+	local coinSettings = ReplicatedStorage:WaitForChild("CoinSettings", 10)
+	if coinSettings then
+		updateRoundVisibility(coinSettings)
+		coinSettings:GetAttributeChangedSignal("IsGemRound"):Connect(function()
+			updateRoundVisibility(coinSettings)
+		end)
+		coinSettings:GetAttributeChangedSignal("CurrentRoundItemType"):Connect(function()
+			updateRoundVisibility(coinSettings)
+		end)
+	end
+end)
 
 -- Proximity fade: fade CoinHUD when far from any player base
 local RunService = game:GetService("RunService")

@@ -51,6 +51,10 @@ CoinConfig.Defaults = {
 
 	-- Arena Wall Transparency (Spectator Visibility)
 	ArenaWallTransparency = 0.7, -- Wall transparency (0 = opaque, 1 = invisible). Change via CoinSettings attribute for live event control.
+
+	-- Round item type settings
+	IsGemRound = false,
+	CurrentRoundItemType = "Coin",
 }
 
 -- Default tiers definitions (shape, size, base colors, etc.)

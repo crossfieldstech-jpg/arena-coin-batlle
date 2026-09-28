@@ -193,7 +193,7 @@ end
 
 function spawnArenaItem(position)
 	local gemEnabled = GemConfig.GetSetting("Enabled")
-	if gemEnabled == true and currentRoundItemType == "Gem" then
+	if currentRoundItemType == "Gem" and gemEnabled == true then
 		return spawnGem(position, GemConfig.SelectRandomTier())
 	else
 		return spawnCoin(position, CoinConfig.SelectRandomTier())
@@ -201,7 +201,7 @@ function spawnArenaItem(position)
 end
 
 -- Fully repopulates the arena up to MaxCoins
-local function repopulateAllCoins()
+local function repopulateAllCoins(forceItemType: string?)
 	if not coinFolder then
 		return
 	end
@@ -209,13 +209,17 @@ local function repopulateAllCoins()
 	-- Clear out any uncollected or remaining coins first
 	coinFolder:ClearAllChildren()
 
-	-- Determine round item type: 1 in 5 rounds (SpawnRate default 0.2) spawns all gems
-	local gemEnabled = GemConfig.GetSetting("Enabled")
-	local gemRate = GemConfig.GetSetting("SpawnRate") or 0.2
-	if gemEnabled == true and math.random() < gemRate then
-		currentRoundItemType = "Gem"
+	if forceItemType then
+		currentRoundItemType = forceItemType
 	else
-		currentRoundItemType = "Coin"
+		-- Determine round item type: 1 in 5 rounds (SpawnRate default 0.2) spawns all gems
+		local gemEnabled = GemConfig.GetSetting("Enabled")
+		local gemRate = GemConfig.GetSetting("SpawnRate") or 0.2
+		if gemEnabled == true and math.random() < gemRate then
+			currentRoundItemType = "Gem"
+		else
+			currentRoundItemType = "Coin"
+		end
 	end
 
 	local isGemRound = (currentRoundItemType == "Gem")
@@ -670,7 +674,7 @@ local function initializeGame()
 	coinFolder.Parent = Workspace
 
 	-- 5. Spawn initial batch of coins in the central arena
-	repopulateAllCoins()
+	repopulateAllCoins("Coin")
 
 	-- Make sure all 4 gates start closed and locked
 	gate:Close()

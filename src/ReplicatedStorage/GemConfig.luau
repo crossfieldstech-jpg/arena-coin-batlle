@@ -8,6 +8,8 @@ GemConfig.Defaults = {
 	SpawnRate = 0.2, -- 1 in 5 arena rounds spawn all gems as a jackpot round (20% rate)
 	ValueMultiplier = 1.2,   -- 1.2x value scale baseline
 	RespawnDelay = 2,        -- Delay in seconds for trickle respawn
+	IsGemRound = false,
+	CurrentRoundItemType = "Coin",
 }
 
 -- Default gem tiers definitions (Emerald, Sapphire, Ruby)
