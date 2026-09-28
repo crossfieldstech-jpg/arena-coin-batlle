@@ -16,11 +16,13 @@ end
 
 local playerVaults = {} -- userId -> { isLoaded = boolean, items = { [itemId] = number } }
 local playerDepositLocks = {} -- userId -> boolean
+local playerNextRunBuffs = {} -- userId -> { id, type, value, displayName, description, icon, grantedAt }
 
 local remotesFolder = nil
 local getVaultDataFunction = nil
 local vaultUpdatedEvent = nil
 local openVaultUIEvent = nil
+local buffUpdatedEvent = nil
 local isInitialized = false
 
 -- Rolling 60-second sliding window telemetry
@@ -112,6 +114,13 @@ function VaultService.Init()
 		openVaultUIEvent.Parent = remotesFolder
 	end
 
+	buffUpdatedEvent = remotesFolder:FindFirstChild("BuffUpdated")
+	if not buffUpdatedEvent then
+		buffUpdatedEvent = Instance.new("RemoteEvent")
+		buffUpdatedEvent.Name = "BuffUpdated"
+		buffUpdatedEvent.Parent = remotesFolder
+	end
+
 	getVaultDataFunction.OnServerInvoke = function(player)
 		return VaultService.GetVault(player)
 	end
@@ -174,6 +183,7 @@ function VaultService.SavePlayer(player)
 
 	playerVaults[userId] = nil
 	playerDepositLocks[userId] = nil
+	playerNextRunBuffs[userId] = nil
 	return success
 end
 
@@ -226,6 +236,47 @@ function VaultService.OpenVaultForPlayer(player)
 	if openVaultUIEvent then
 		openVaultUIEvent:FireClient(player)
 	end
+end
+
+function VaultService.ApplyNextRunBuff(player, buffDef)
+	if not player or not player.UserId or not buffDef then
+		return
+	end
+	local userId = player.UserId
+	playerNextRunBuffs[userId] = {
+		id = buffDef.id or "Buff",
+		type = buffDef.type or "MultiplierBonus",
+		value = buffDef.value or 0.15,
+		displayName = buffDef.displayName or "Arena Buff",
+		description = buffDef.description or "",
+		icon = buffDef.icon or "⚡",
+		grantedAt = os.clock(),
+	}
+
+	if buffUpdatedEvent and player.Parent then
+		buffUpdatedEvent:FireClient(player, playerNextRunBuffs[userId])
+	end
+end
+
+function VaultService.GetActiveBuff(player)
+	if not player or not player.UserId then
+		return nil
+	end
+	return playerNextRunBuffs[player.UserId]
+end
+
+function VaultService.ConsumeNextRunBuff(player)
+	if not player or not player.UserId then
+		return nil
+	end
+	local userId = player.UserId
+	local buff = playerNextRunBuffs[userId]
+	playerNextRunBuffs[userId] = nil
+
+	if buffUpdatedEvent and player.Parent then
+		buffUpdatedEvent:FireClient(player, nil)
+	end
+	return buff
 end
 
 function VaultService.EnsurePlayerLeaderstats(player)

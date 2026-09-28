@@ -89,12 +89,14 @@ function PlayerBase.new(id, centerPosition, facingDirection, customConfig)
 	self.activateLabel = nil
 	self.signLabel = nil
 	self.barrierFolder = nil
+	self.miniGamePad = nil
 
 	-- Callbacks
 	self._claimCallbacks = {}
 	self._bankCallbacks = {}
 	self._activateCallbacks = {}
 	self._openVaultCallbacks = {}
+	self._miniGamePromptCallbacks = {}
 
 	return self
 end
@@ -402,8 +404,66 @@ function PlayerBase:Build(parent)
 	-- Activity Zone 1 (Right Back Yard - e.g. Upgrades / Tasks)
 	makeActivityZone("ActivityZone_Alpha", Vector3.new(22, 0.6, -20), "ACTIVITY ZONE ALPHA\n[Open for Tasks]")
 
-	-- Activity Zone 2 (Left Back Yard - e.g. Workshops / Mini-games)
-	makeActivityZone("ActivityZone_Beta", Vector3.new(-30, 0.6, 24.5), "ACTIVITY ZONE BETA\n[Open for Tasks]")
+	-- Activity Zone 2 (Left Back Yard - Sky Sub-Arena Mini-Games Portal)
+	local _zoneBeta = makeActivityZone("ActivityZone_Beta", Vector3.new(-30, 0.6, 24.5), "SKY SUB-ARENA\n[Step to Play]")
+
+	-- Interactive Mini-Game Sky Portal Pad (in ActivityZone_Beta)
+	local portalOffset = Vector3.new(-30, 0.75, 24.5)
+	local portalPad = Instance.new("Part")
+	portalPad.Name = "MiniGamePortalPad"
+	portalPad.Shape = Enum.PartType.Cylinder
+	portalPad.Size = Vector3.new(0.5, 9, 9)
+	portalPad.CFrame = baseCFrame * CFrame.new(portalOffset) * CFrame.Angles(0, 0, math.rad(90))
+	portalPad.Anchored = true
+	portalPad.CanCollide = false
+	portalPad.Material = Enum.Material.Neon
+	portalPad.Color = Color3.fromRGB(155, 89, 182) -- Radiant amethyst purple
+	addSoftGlow(portalPad, Color3.fromRGB(180, 110, 220), 0.7, 12)
+	portalPad.Parent = model
+	self.miniGamePad = portalPad
+
+	local portalRing = Instance.new("Part")
+	portalRing.Name = "PortalRing"
+	portalRing.Shape = Enum.PartType.Cylinder
+	portalRing.Size = Vector3.new(0.1, 11, 11)
+	portalRing.CFrame = baseCFrame * CFrame.new(portalOffset.X, 0.55, portalOffset.Z) * CFrame.Angles(0, 0, math.rad(90))
+	portalRing.Anchored = true
+	portalRing.CanCollide = false
+	portalRing.Material = Enum.Material.SmoothPlastic
+	portalRing.Color = self.theme.accentColor
+	portalRing.Parent = model
+
+	local portalPrompt = Instance.new("ProximityPrompt")
+	portalPrompt.Name = "PortalPrompt"
+	portalPrompt.ActionText = "Open Mini-Games"
+	portalPrompt.ObjectText = "Sky Sub-Arena"
+	portalPrompt.KeyboardKeyCode = Enum.KeyCode.E
+	portalPrompt.RequiresLineOfSight = false
+	portalPrompt.MaxActivationDistance = 14
+	portalPrompt.HoldDuration = 0
+	portalPrompt.Parent = portalPad
+
+	portalPrompt.Triggered:Connect(function(player)
+		if player == self.owner then
+			for _, cb in ipairs(self._miniGamePromptCallbacks) do
+				task.spawn(cb, player, self)
+			end
+		end
+	end)
+
+	local portalTouchDebounce = {}
+	portalPad.Touched:Connect(function(hit)
+		local humanoid = hit.Parent and hit.Parent:FindFirstChildOfClass("Humanoid")
+		if not humanoid then return end
+		local player = Players:GetPlayerFromCharacter(hit.Parent)
+		if not player or player ~= self.owner then return end
+		local now = os.clock()
+		if portalTouchDebounce[player] and (now - portalTouchDebounce[player] < 2) then return end
+		portalTouchDebounce[player] = now
+		for _, cb in ipairs(self._miniGamePromptCallbacks) do
+			task.spawn(cb, player, self)
+		end
+	end)
 
 	-- Activity Zone 3 (Front Workshop Yard)
 	makeActivityZone("ActivityZone_Gamma", Vector3.new(22, 0.6, 18), "WORKSHOP YARD\n[Open for Future Expansion]")
@@ -661,7 +721,7 @@ function PlayerBase:BuildWalls(customWallHeight, customWallColor)
 	makeWallSegment("BackRightWall", Vector3.new(sideOffset, wallY, -halfSize - wallThickness / 2), Vector3.new(sideWidth, height, wallThickness))
 
 	-- Arch over base entrance (at rear)
-	local arch = makeWallSegment("EntranceArch", Vector3.new(0, height - 0.5, -halfSize - wallThickness / 2), Vector3.new(doorWidth, 2, wallThickness), self.theme.accentColor)
+	local _arch = makeWallSegment("EntranceArch", Vector3.new(0, height - 0.5, -halfSize - wallThickness / 2), Vector3.new(doorWidth, 2, wallThickness), self.theme.accentColor)
 
 	self.hasWalls = true
 	self.model:SetAttribute("HasWalls", true)
@@ -795,6 +855,10 @@ function PlayerBase:OnOpenVault(callback)
 	table.insert(self._openVaultCallbacks, callback)
 end
 
+function PlayerBase:OnMiniGamePrompt(callback)
+	table.insert(self._miniGamePromptCallbacks, callback)
+end
+
 function PlayerBase:Destroy()
 	if self.model then
 		self.model:Destroy()
@@ -803,6 +867,8 @@ function PlayerBase:Destroy()
 	self._claimCallbacks = {}
 	self._bankCallbacks = {}
 	self._activateCallbacks = {}
+	self._openVaultCallbacks = {}
+	self._miniGamePromptCallbacks = {}
 	self._openVaultCallbacks = {}
 end
 

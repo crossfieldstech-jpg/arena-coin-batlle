@@ -12,6 +12,7 @@ local GateController = require(ReplicatedStorage:WaitForChild("GateController"))
 local PlayerBase = require(ReplicatedStorage:WaitForChild("PlayerBase"))
 local VaultItemRegistry = require(ReplicatedStorage:WaitForChild("VaultItemRegistry"))
 local VaultService = require(script.Parent:WaitForChild("VaultService"))
+local MiniGameService = require(script.Parent:WaitForChild("MiniGames"):WaitForChild("MiniGameService"))
 
 local coinFolder = nil
 local enclosure = nil
@@ -24,6 +25,7 @@ local activePlayer = nil          -- Player currently running the arena
 local activeBase = nil            -- PlayerBase currently active
 local activeExpirationTimer = 0   -- Remaining seconds for active run
 local activeTimerThread = nil     -- Active task thread for countdown
+local activeRunBonusMultiplier = 0 -- Temporary multiplier bonus from Mini-Game buff
 
 -- Runner Cooldown Tracking (Gives other waiting players advantage to trigger next run)
 local cooldownPlayer = nil
@@ -84,11 +86,11 @@ function spawnCoin(position, tierConfig)
 			return
 		end
 
-		-- Apply player's base coin multiplier if they own a base
-		local multiplier = 1.0
+		-- Apply player's base coin multiplier if they own a base (+ any active Mini-Game bonus)
+		local multiplier = 1.0 + activeRunBonusMultiplier
 		local ownedBase = playerToBaseMap[player]
 		if ownedBase then
-			multiplier = ownedBase.coinMultiplier or 1.0
+			multiplier = (ownedBase.coinMultiplier or 1.0) + activeRunBonusMultiplier
 		end
 
 		local result = VaultService.ProcessCollection(player, "Coins", coin:GetValue(), multiplier)
@@ -149,11 +151,11 @@ function spawnGem(position, tierConfig)
 			return
 		end
 
-		-- Apply player's base multiplier if they own a base
-		local multiplier = 1.0
+		-- Apply player's base multiplier if they own a base (+ any active Mini-Game bonus)
+		local multiplier = 1.0 + activeRunBonusMultiplier
 		local ownedBase = playerToBaseMap[player]
 		if ownedBase then
-			multiplier = ownedBase.coinMultiplier or 1.0
+			multiplier = (ownedBase.coinMultiplier or 1.0) + activeRunBonusMultiplier
 		end
 
 		local result = VaultService.ProcessCollection(player, "Gems", gem:GetValue(), multiplier)
@@ -364,6 +366,7 @@ function onArenaCleared(reason)
 			settingsFolder:SetAttribute("ArenaTimeRemaining", 0)
 			activePlayer = nil
 			activeBase = nil
+			activeRunBonusMultiplier = 0
 			isRoundResetting = false
 			updateAllBaseActivationPads(false)
 			enclosure:UpdateDisplayBoards("", 0, false, currentRoundItemType == "Gem")
@@ -406,6 +409,7 @@ function onArenaCleared(reason)
 		settingsFolder:SetAttribute("ArenaStatus", "IdleReady")
 		activePlayer = nil
 		activeBase = nil
+		activeRunBonusMultiplier = 0
 		isRoundResetting = false
 		updateAllBaseActivationPads(false)
 		enclosure:UpdateDisplayBoards("", 0, false, currentRoundItemType == "Gem")
@@ -434,7 +438,21 @@ local function startSoloArenaRun(player, base)
 	-- Update pads across all bases
 	updateAllBaseActivationPads(true, playerName)
 
-	local duration = CoinConfig.GetSetting("CoinExpirationTime") or 30
+	-- Check and consume active Next-Run Arena Buffs from sub-arena mini-games
+	local activeBuff = VaultService.ConsumeNextRunBuff and VaultService.ConsumeNextRunBuff(player)
+	local bonusMultiplier = 0
+	local extraTime = 0
+	if activeBuff then
+		if activeBuff.type == "TimeBonus" then
+			extraTime = activeBuff.value or 5
+		elseif activeBuff.type == "MultiplierBonus" then
+			bonusMultiplier = activeBuff.value or 0.20
+		end
+	end
+	activeRunBonusMultiplier = bonusMultiplier
+
+	local baseDuration = CoinConfig.GetSetting("CoinExpirationTime") or 30
+	local duration = baseDuration + extraTime
 	activeExpirationTimer = duration
 	enclosure:UpdateDisplayBoards(playerName, duration, true, currentRoundItemType == "Gem")
 
@@ -451,7 +469,6 @@ local function startSoloArenaRun(player, base)
 	local cardinalDirection = base.theme.direction
 	gate:OpenSingleGate(cardinalDirection, function()
 		-- Start expiration timer countdown
-		local duration = CoinConfig.GetSetting("CoinExpirationTime") or 30
 		activeExpirationTimer = duration
 
 		activeTimerThread = task.spawn(function()
@@ -567,6 +584,11 @@ local function setupPlayerBases()
 				return
 			end
 
+			-- Cannot activate if currently playing a sky mini-game
+			if MiniGameService.IsPlayerInMiniGame(player) then
+				return
+			end
+
 			-- Cannot activate if this player is currently in runner cooldown (giving others advantage)
 			if cooldownPlayer == player and cooldownRemaining > 0 then
 				return
@@ -576,12 +598,23 @@ local function setupPlayerBases()
 			startSoloArenaRun(player, triggeringBase)
 		end)
 
+		-- Interactive Mini-Game Sky Portal Handler: Open mini-games selection
+		base:OnMiniGamePrompt(function(player, targetBase)
+			if targetBase:GetOwner() == player then
+				MiniGameService.OpenMenuForPlayer(player, targetBase)
+			end
+		end)
+
 		table.insert(playerBases, base)
 	end
 end
 
 local function initializeGame()
 	VaultService.Init()
+	MiniGameService.Init()
+	MiniGameService.SetArenaChecker(function(player)
+		return activePlayer == player
+	end)
 
 	local settingsFolder = CoinConfig.GetSettingsInstance()
 	settingsFolder:SetAttribute("ArenaStatus", "IdleReady")
@@ -689,6 +722,11 @@ end
 local function onCharacterAdded(player, character)
 	local root = character:WaitForChild("HumanoidRootPart", 5)
 	if not root then
+		return
+	end
+
+	-- If player is currently in a sky sub-arena session, do not override their position
+	if MiniGameService.IsPlayerInMiniGame(player) then
 		return
 	end
 
