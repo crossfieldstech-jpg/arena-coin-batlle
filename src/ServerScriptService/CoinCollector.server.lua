@@ -10,6 +10,7 @@ local GemConfig = require(ReplicatedStorage:WaitForChild("GemConfig"))
 local ArenaEnclosure = require(ReplicatedStorage:WaitForChild("ArenaEnclosure"))
 local GateController = require(ReplicatedStorage:WaitForChild("GateController"))
 local PlayerBase = require(ReplicatedStorage:WaitForChild("PlayerBase"))
+local VaultItemRegistry = require(ReplicatedStorage:WaitForChild("VaultItemRegistry"))
 local VaultService = require(script.Parent:WaitForChild("VaultService"))
 
 local coinFolder = nil
@@ -34,30 +35,8 @@ local playerBases = {}
 local playerToBaseMap = {} -- Player -> PlayerBase
 
 local function ensureLeaderstats(player)
-	local leaderstats = player:FindFirstChild("leaderstats")
-	if not leaderstats then
-		leaderstats = Instance.new("Folder")
-		leaderstats.Name = "leaderstats"
-		leaderstats.Parent = player
-	end
-
-	local coinsValue = leaderstats:FindFirstChild("Coins")
-	if not coinsValue then
-		coinsValue = Instance.new("IntValue")
-		coinsValue.Name = "Coins"
-		coinsValue.Value = 0
-		coinsValue.Parent = leaderstats
-	end
-
-	local gemsValue = leaderstats:FindFirstChild("Gems")
-	if not gemsValue then
-		gemsValue = Instance.new("NumberValue")
-		gemsValue.Name = "Gems"
-		gemsValue.Value = 0
-		gemsValue.Parent = leaderstats
-	end
-
-	return leaderstats, coinsValue, gemsValue
+	local leaderstats, valMap = VaultService.EnsurePlayerLeaderstats(player)
+	return leaderstats, valMap["Coins"], valMap["Gems"]
 end
 
 local function getRandomPosition()
@@ -105,8 +84,6 @@ function spawnCoin(position, tierConfig)
 			return
 		end
 
-		local _, coinsValue, _ = ensureLeaderstats(player)
-
 		-- Apply player's base coin multiplier if they own a base
 		local multiplier = 1.0
 		local ownedBase = playerToBaseMap[player]
@@ -114,14 +91,13 @@ function spawnCoin(position, tierConfig)
 			multiplier = ownedBase.coinMultiplier or 1.0
 		end
 
-		local earned = math.round(coin:GetValue() * multiplier)
-		if ownedBase then
+		local result = VaultService.ProcessCollection(player, "Coins", coin:GetValue(), multiplier)
+		if ownedBase and result then
 			ownedBase:UpdatePerformance({
-				totalEarned = ownedBase.totalEarned + earned,
-				score = ownedBase.performanceScore + earned,
+				totalEarned = ownedBase.totalEarned + result.earned,
+				score = ownedBase.performanceScore + result.score,
 			})
 		end
-		coinsValue.Value += earned
 
 		local isBatchOnly = CoinConfig.GetSetting("BatchRespawnOnly")
 		if isBatchOnly then
@@ -173,8 +149,6 @@ function spawnGem(position, tierConfig)
 			return
 		end
 
-		local _, _, gemsValue = ensureLeaderstats(player)
-
 		-- Apply player's base multiplier if they own a base
 		local multiplier = 1.0
 		local ownedBase = playerToBaseMap[player]
@@ -182,11 +156,10 @@ function spawnGem(position, tierConfig)
 			multiplier = ownedBase.coinMultiplier or 1.0
 		end
 
-		local earned = math.round((gem:GetValue() * multiplier) * 10) / 10
-		gemsValue.Value += earned
-		if ownedBase then
+		local result = VaultService.ProcessCollection(player, "Gems", gem:GetValue(), multiplier)
+		if ownedBase and result then
 			ownedBase:UpdatePerformance({
-				score = ownedBase.performanceScore + math.round(earned * 2),
+				score = ownedBase.performanceScore + result.score,
 			})
 		end
 
@@ -538,9 +511,10 @@ local function setupPlayerBases()
 			playerToBaseMap[player] = claimedBase
 			player:SetAttribute("AssignedBaseId", claimedBase.id)
 
-			local storedCoins = VaultService.GetItemAmount(player, "Coins")
-			local restoredLevel = 1 + math.floor(storedCoins / 50)
-			local restoredMultiplier = 1.0 + (restoredLevel - 1) * 0.1
+			local vault = VaultService.GetVault(player)
+			local storedCoins = vault["Coins"] or 0
+			local restoredLevel = VaultItemRegistry.CalculateBaseLevel(vault)
+			local restoredMultiplier = VaultItemRegistry.CalculateMultiplier(restoredLevel)
 			claimedBase:UpdatePerformance({
 				bankedCoins = storedCoins,
 				level = restoredLevel,
@@ -554,40 +528,7 @@ local function setupPlayerBases()
 				return
 			end
 
-			local _, coinsValue, gemsValue = ensureLeaderstats(player)
-			if (coinsValue and coinsValue.Value > 0) or (gemsValue and gemsValue.Value > 0) then
-				local scoreGain = 0
-				local perfUpdates = {}
-
-				if coinsValue and coinsValue.Value > 0 then
-					local depositAmount = coinsValue.Value
-					coinsValue.Value = 0
-
-					VaultService.AddItem(player, "Coins", depositAmount)
-					local newBanked = VaultService.GetItemAmount(player, "Coins")
-					-- Level up formula: every 50 banked coins increases level
-					local newLevel = 1 + math.floor(newBanked / 50)
-					-- Performance multiplier: +10% per level above 1
-					local newMultiplier = 1.0 + (newLevel - 1) * 0.1
-
-					perfUpdates.bankedCoins = newBanked
-					perfUpdates.level = newLevel
-					perfUpdates.multiplier = newMultiplier
-					scoreGain += depositAmount * 2
-				end
-
-				if gemsValue and gemsValue.Value > 0 then
-					local gemDeposit = gemsValue.Value
-					gemsValue.Value = 0
-					VaultService.AddItem(player, "Gems", gemDeposit)
-					scoreGain += math.round(gemDeposit * 3)
-				end
-
-				if scoreGain > 0 or perfUpdates.bankedCoins ~= nil then
-					perfUpdates.score = targetBase.performanceScore + scoreGain
-					targetBase:UpdatePerformance(perfUpdates)
-				end
-			end
+			VaultService.ProcessDeposit(player, targetBase)
 
 			local now = tick()
 			if not bankDebounce[player] or now >= bankDebounce[player] then

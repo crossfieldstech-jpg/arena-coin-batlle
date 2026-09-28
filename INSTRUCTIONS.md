@@ -5,6 +5,7 @@ Welcome to the **Coin Collector** project! This document outlines the high-level
 For deep-dive technical specifications and subsystem mechanics, refer to the dedicated guidebooks:
 - **Central Arena & Gate Mechanics**: See [ARENA_INSTRUCTIONS.md](ARENA_INSTRUCTIONS.md)
 - **4-Player Base Compound & Upgrades**: See [BASE_INSTRUCTIONS.md](BASE_INSTRUCTIONS.md)
+- **Decoupled Economy & Item System**: See [ECONOMY_INSTRUCTIONS.md](ECONOMY_INSTRUCTIONS.md)
 
 ---
 
@@ -98,6 +99,7 @@ coin-collector/
 ├── INSTRUCTIONS.md                        # High-level game rules & requirements (this document)
 ├── ARENA_INSTRUCTIONS.md                  # Central arena, 4 gates, coin tiers & ejection mechanics
 ├── BASE_INSTRUCTIONS.md                   # 4-player bases, claiming, banking, upgrades & walls
+├── ECONOMY_INSTRUCTIONS.md                # Decoupled economy, item schema, progression & diagnostics
 ├── README.md                              # Repository overview
 └── src/
     ├── ReplicatedStorage/
@@ -107,9 +109,12 @@ coin-collector/
     │   ├── GemConfig.luau                 # Gem economy settings defaults & live attribute sync
     │   ├── ArenaEnclosure.lua             # Procedural arena walls, highways, and ejection routing
     │   ├── GateController.lua             # TweenService 4-gate synchronizer & neon lights
-    │   └── PlayerBase.lua                 # Modular player base class: claim pad, bank vault, launch pad
+    │   ├── PlayerBase.lua                 # Modular player base class: claim pad, bank vault, launch pad
+    │   ├── VaultItemRegistry.luau         # Pure item definitions, economic roles & scaling formulas
+    │   └── EconomySimulator.luau          # Headless economy simulation & scaling validation suite
     ├── ServerScriptService/
-    │   └── CoinCollector.server.lua       # Main game coordinator: loop, round states & leaderstats
+    │   ├── CoinCollector.server.lua       # Main game coordinator: loop, round states & solo runs
+    │   └── VaultService.lua               # Atomic economy transactions, vault storage & live telemetry
     └── StarterPlayer/
         └── StarterPlayerScripts/
             ├── CoinHUD.client.lua         # Client-side UI displaying player coin & gem balance
@@ -132,6 +137,7 @@ For specific implementations, refer directly to the designated guide:
 | **Clearance & Ejection** | [ARENA_INSTRUCTIONS.md](ARENA_INSTRUCTIONS.md) | [src/ServerScriptService/CoinCollector.server.lua](src/ServerScriptService/CoinCollector.server.lua) |
 | **Base Compound & Claims** | [BASE_INSTRUCTIONS.md](BASE_INSTRUCTIONS.md) | [src/ReplicatedStorage/PlayerBase.lua](src/ReplicatedStorage/PlayerBase.lua) |
 | **Coin Bank & Multipliers** | [BASE_INSTRUCTIONS.md](BASE_INSTRUCTIONS.md) | [src/ReplicatedStorage/PlayerBase.lua](src/ReplicatedStorage/PlayerBase.lua) |
+| **Economy & Scaling Diagnostics** | [ECONOMY_INSTRUCTIONS.md](ECONOMY_INSTRUCTIONS.md) | [src/ReplicatedStorage/VaultItemRegistry.luau](src/ReplicatedStorage/VaultItemRegistry.luau), [src/ServerScriptService/VaultService.lua](src/ServerScriptService/VaultService.lua), [src/ReplicatedStorage/EconomySimulator.luau](src/ReplicatedStorage/EconomySimulator.luau) |
 | **Base Wall Construction** | [BASE_INSTRUCTIONS.md](BASE_INSTRUCTIONS.md) | [src/ReplicatedStorage/PlayerBase.lua](src/ReplicatedStorage/PlayerBase.lua) |
 | **Activity & Task Zones** | [BASE_INSTRUCTIONS.md](BASE_INSTRUCTIONS.md) | [src/ReplicatedStorage/PlayerBase.lua](src/ReplicatedStorage/PlayerBase.lua) |
 | **Global Config Attributes** | [src/ReplicatedStorage/CoinConfig.lua](src/ReplicatedStorage/CoinConfig.lua) | [src/ReplicatedStorage/CoinConfig.lua](src/ReplicatedStorage/CoinConfig.lua), [src/ReplicatedStorage/GemConfig.luau](src/ReplicatedStorage/GemConfig.luau) |
