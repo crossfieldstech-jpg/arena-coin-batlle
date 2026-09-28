@@ -88,6 +88,7 @@ function PlayerBase.new(id, centerPosition, facingDirection, customConfig)
 	self.activatePad = nil
 	self.activateLabel = nil
 	self.signLabel = nil
+	self.barrierFolder = nil
 
 	-- Callbacks
 	self._claimCallbacks = {}
@@ -170,7 +171,7 @@ function PlayerBase:Build(parent)
 	makeCurb("CurbBackLeft", Vector3.new(-frontSideOffset, curbY, -halfSize), Vector3.new(frontSideWidth, curbHeight, curbThickness))
 	makeCurb("CurbBackRight", Vector3.new(frontSideOffset, curbY, -halfSize), Vector3.new(frontSideWidth, curbHeight, curbThickness))
 
-	-- Entrance Gate Signboard Post (Standing at the front entrance)
+	-- Entrance Gate Signboard Post (Standing at the back entrance)
 	local signPost = Instance.new("Part")
 	signPost.Name = "SignPost"
 	signPost.Size = Vector3.new(1.2, 7, 1.2)
@@ -557,6 +558,8 @@ function PlayerBase:SetOwner(player)
 	if self.spawnLocation then
 		self.spawnLocation.Enabled = false
 	end
+
+	self:BuildVisualBarrier()
 end
 
 function PlayerBase:ClearOwner()
@@ -589,6 +592,8 @@ function PlayerBase:ClearOwner()
 	if self.spawnLocation then
 		self.spawnLocation.Enabled = true
 	end
+
+	self:ClearVisualBarrier()
 
 	self:UpdatePerformance({
 		bankedCoins = 0,
@@ -670,6 +675,68 @@ function PlayerBase:ClearWalls()
 	self.hasWalls = false
 	if self.model then
 		self.model:SetAttribute("HasWalls", false)
+	end
+end
+
+function PlayerBase:BuildVisualBarrier()
+	if not self.model then
+		return
+	end
+
+	self:ClearVisualBarrier()
+
+	local barrierFolder = Instance.new("Folder")
+	barrierFolder.Name = "VisualBarrier"
+	barrierFolder.Parent = self.model
+	self.barrierFolder = barrierFolder
+
+	local halfSize = self.size / 2
+	local height = 22
+	local barrierY = (height / 2) + 0.5
+	local barrierColor = self.theme.primaryColor
+	local barrierThickness = 0.5
+	local baseCFrame = CFrame.lookAt(self.center, self.center + self.facing)
+
+	local function makeBarrierSegment(name, offset, size)
+		local panel = Instance.new("Part")
+		panel.Name = name
+		panel.Size = size
+		panel.CFrame = baseCFrame * CFrame.new(offset)
+		panel.Anchored = true
+		panel.CanCollide = false
+		panel.Material = Enum.Material.SmoothPlastic
+		panel.Color = barrierColor
+		panel.Transparency = 0.75
+		panel.TopSurface = Enum.SurfaceType.Smooth
+		panel.BottomSurface = Enum.SurfaceType.Smooth
+		panel.Parent = barrierFolder
+		return panel
+	end
+
+	-- Front barrier (toward arena)
+	makeBarrierSegment("BarrierFront", Vector3.new(0, barrierY, halfSize + barrierThickness / 2), Vector3.new(self.size + barrierThickness * 2, height, barrierThickness))
+
+	-- Left barrier
+	makeBarrierSegment("BarrierLeft", Vector3.new(-halfSize - barrierThickness / 2, barrierY, 0), Vector3.new(barrierThickness, height, self.size))
+
+	-- Right barrier
+	makeBarrierSegment("BarrierRight", Vector3.new(halfSize + barrierThickness / 2, barrierY, 0), Vector3.new(barrierThickness, height, self.size))
+
+	-- Back barrier with entrance opening (entrance at rear)
+	local doorWidth = 16
+	local sideWidth = (self.size - doorWidth) / 2
+	local sideOffset = (self.size / 2) - (sideWidth / 2)
+	makeBarrierSegment("BarrierBackLeft", Vector3.new(-sideOffset, barrierY, -halfSize - barrierThickness / 2), Vector3.new(sideWidth, height, barrierThickness))
+	makeBarrierSegment("BarrierBackRight", Vector3.new(sideOffset, barrierY, -halfSize - barrierThickness / 2), Vector3.new(sideWidth, height, barrierThickness))
+
+	-- Arch over entrance
+	makeBarrierSegment("BarrierArch", Vector3.new(0, height - 0.5, -halfSize - barrierThickness / 2), Vector3.new(doorWidth, 2, barrierThickness))
+end
+
+function PlayerBase:ClearVisualBarrier()
+	if self.barrierFolder then
+		self.barrierFolder:Destroy()
+		self.barrierFolder = nil
 	end
 end
 

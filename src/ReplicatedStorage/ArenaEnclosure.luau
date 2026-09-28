@@ -122,7 +122,7 @@ function ArenaEnclosure:Build()
 
 		-- Lintel above doorway
 		if lintelHeight > 0 then
-			local lintelPart = setWallPart(makePart(
+			local _lintelPart = setWallPart(makePart(
 				directionName .. "_Lintel",
 				Vector3.new(self.gateWidth, lintelHeight, wt),
 				baseCF * CFrame.new(0, lintelY, offsetDist)
@@ -208,14 +208,14 @@ function ArenaEnclosure:Build()
 		end
 
 		-- Gate decorative pillars flanking doorway
-		local pillarLeft = setWallPart(makePart(
+		local _pillarLeft = setWallPart(makePart(
 			directionName .. "_PillarLeft",
 			Vector3.new(1.2, self.wallHeight + 1, wt + 1),
 			baseCF * CFrame.new(-self.gateWidth / 2 - 0.6, (self.wallHeight + 1) / 2, offsetDist),
 			pillarColor,
 			Enum.Material.Metal
 		))
-		local pillarRight = setWallPart(makePart(
+		local _pillarRight = setWallPart(makePart(
 			directionName .. "_PillarRight",
 			Vector3.new(1.2, self.wallHeight + 1, wt + 1),
 			baseCF * CFrame.new(self.gateWidth / 2 + 0.6, (self.wallHeight + 1) / 2, offsetDist),
