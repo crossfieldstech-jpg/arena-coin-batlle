@@ -14,3 +14,18 @@ For every coding, refactoring, feature implementation, and bug-fixing request in
    - When a user asks a task in default chat, coordinate the task through the mandatory dual-model `Review & Execute` loop or invoke the `Plan Reviewer` and `Task Executor` subagents respectively.
    - Do not bypass plan verification or execute code changes with unreviewed architecture.
    - Keep the dual-model review-and-execute protocol mandatory across all workflows.
+
+## Mandatory Roblox Studio MCP Two-Way Sync Protocol
+
+Roblox Studio MCP does not run an automatic background filesystem watcher. Therefore, the assistant must always maintain bidirectional parity between VS Code and Roblox Studio:
+
+1. **Automatic Inbound Pull (Roblox Studio -> VS Code)**:
+   - At the beginning of tasks, or whenever inspecting script state, check if scripts inside Roblox Studio contain changes made in Studio that are not yet on disk.
+   - If a script in Roblox Studio has newer content or differs from the local file in `src/`, immediately read its `.Source` via MCP and update the corresponding local workspace file in VS Code.
+
+2. **Automatic Outbound Push (VS Code -> Roblox Studio)**:
+   - Whenever files in `src/` are modified, refactored, or newly created in VS Code, the assistant must immediately push the updated content directly to the target script in Roblox Studio via `mcp_robloxstudio_execute_luau` (assigning `target.Source = [===[...]===]`).
+   - Also update any associated live `Configuration` folder attributes in `ReplicatedStorage` (e.g. `CoinSettings`, `GemSettings`) when default values change.
+
+3. **Guaranteed Parity**:
+   - Never leave local files and Roblox Studio DataModel out of sync. Both environments must reflect the exact same code at the conclusion of every turn.
