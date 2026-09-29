@@ -13,6 +13,7 @@ A modular Roblox multiplayer game where up to 4 players maintain their own cardi
   - **Standard Coin Rounds**: 100% coins spawn in the arena with zero gems. The client HUD compacts to 52px, displaying only Coins.
   - **Gem Jackpot Rounds**: 1-in-5 chance (20% spawn rate) for an all-gem jackpot round. Collect radiant gemstones scaled to **$2.0\times$ the value of coins** (Emerald = 2.0, Sapphire = 6.0, Ruby = 20.0). The client HUD dynamically expands to 96px displaying both currencies.
 - **Solo Arena Runs & Security Ejection**: An arena run can only be initiated by a player standing on their own base activation pad. Only their cardinal gate slides open; unauthorized intruders are bounced back to their bases. When all items are collected or the 30s expiration timer runs out, the runner is teleported home, the gate locks, and a runner cooldown gives other players first opportunity to trigger the next run.
+- **Sky Sub-Arena Mini-Games**: Isolated procedural platforms high above the compounds at $Y=400$ host solo mini-games (e.g. *Coin Forge* micro-tycoon and *Base Sentry* tower defense) during central arena downtime, awarding coins, gems, rare drops (Ancient Relics & Star Fragments), and temporary Next-Run Arena Buffs.
 - **Automated Scaling Verification**: Includes a headless Luau simulation engine (`EconomySimulator`) to stress-test 100+ rounds across 4 player profiles, asserting smooth leveling curves, inflation control, and multiplier caps ($< 3.0\times$).
 - **Live Studio Attributes**: Tune timers, coin/gem values, spawn chances, base stats, and gate settings in real-time via `ReplicatedStorage.CoinSettings` and `ReplicatedStorage.GemSettings` without restarting.
 - **Roblox Studio MCP Direct Sync**: Synchronized directly with Roblox Studio using the Roblox Studio Model Context Protocol (MCP), eliminating external syncing servers.
@@ -29,6 +30,7 @@ For in-depth architectural and mechanical specifications, refer to the dedicated
 | **[ARENA_INSTRUCTIONS.md](ARENA_INSTRUCTIONS.md)** | Central Arena & Gates | Dimensions, gate state machine, coin/gem geometries, jackpot rounds, and spectator walls |
 | **[BASE_INSTRUCTIONS.md](BASE_INSTRUCTIONS.md)** | 4-Player Compounds | Base claiming, banking pads, perimeter visual barriers, upgrades, and respawn routing |
 | **[ECONOMY_INSTRUCTIONS.md](ECONOMY_INSTRUCTIONS.md)** | Decoupled Economy | Schema validation, progression power curves, bounded multipliers, faucets/sinks, and scaling tests |
+| **[docs/minigames/README.md](docs/minigames/README.md)** | Sky Sub-Arena Mini-Games | Vertical platform ($Y=400$), session lifecycle, Coin Forge, Base Sentry, and Next-Run Buffs |
 
 ---
 
@@ -41,6 +43,12 @@ arena-coin-battle/
 ├── BASE_INSTRUCTIONS.md                             # 4-player compounds, claiming & visual barriers
 ├── ECONOMY_INSTRUCTIONS.md                          # Economy decoupling, formulas & diagnostic guide
 ├── README.md                                        # Repository overview (this document)
+├── docs/
+│   └── minigames/
+│       ├── README.md                                # Sky Sub-Arena architecture, lifecycle & rewards
+│       ├── COIN_FORGE.md                            # Coin Forge micro-tycoon loop & buff specs
+│       ├── BASE_SENTRY.md                           # Base Sentry tower defense waves & sentry specs
+│       └── NEW_MINIGAME_GUIDE.md                    # Mini-game authoring guide & template
 └── src/
     ├── ReplicatedStorage/
     │   ├── ArenaEnclosure.luau                      # Procedural arena walls, interior digital displays & ejection
@@ -52,12 +60,26 @@ arena-coin-battle/
     │   ├── GateUnlockTrigger.luau                   # Pluggable unlock trigger manager (timer, flags, custom)
     │   ├── PlayerBase.luau                          # Player base compound class: claim pad, bank vault, visual barrier
     │   ├── VaultItemRegistry.luau                   # Pure item catalog, economic roles, leveling curve & multiplier math
-    │   └── EconomySimulator.luau                    # Headless economy simulator & scaling assertion suite
+    │   ├── EconomySimulator.luau                    # Headless economy simulator & scaling assertion suite
+    │   └── MiniGames/
+    │       └── MiniGameRegistry.luau                # Pure catalog & schema for Sky Sub-Arena games & buffs
     ├── ServerScriptService/
     │   ├── CoinCollector.server.lua                 # Main game coordinator: round lifecycle, solo runs, and gates
-    │   └── VaultService.lua                         # Atomic economy pipelines, mutex locking, persistence & live telemetry
+    │   ├── VaultService.lua                         # Atomic economy pipelines, mutex locking, persistence & live telemetry
+    │   └── MiniGames/
+    │       ├── MiniGameService.lua                  # Sky platform spawner, session manager & rewards
+    │       └── Games/
+    │           ├── CoinForge.lua                    # Micro-Tycoon ore -> furnace -> stamper loop
+    │           └── BaseSentry.lua                   # Tower Defense wave runner & sentry nodes
     └── StarterPlayer/
         └── StarterPlayerScripts/
+            ├── CoinHUD.client.lua                   # Dynamic single/dual-currency HUD with proximity fading
+            ├── CoinVisualController.client.lua      # Smooth 60fps coin spinning & floating bob animation
+            ├── GemVisualController.client.lua       # Radiant 3D tumbling rotation animation for gemstones
+            ├── MiniGameHUD.client.lua               # Dynamic mini-game launcher & active HUD
+            ├── TextProximityFade.local.luau         # Proximity-based billboard text fading
+            └── VaultHUD.client.lua                  # Interactive modal dialog for persistent player vault storage
+```
             ├── CoinHUD.client.lua                   # Dynamic single/dual-currency HUD with proximity fading
             ├── CoinVisualController.client.lua      # Smooth 60fps coin spinning & floating bob animation
             ├── GemVisualController.client.lua       # Radiant 3D tumbling rotation animation for gemstones

@@ -6,6 +6,7 @@ For deep-dive technical specifications and subsystem mechanics, refer to the ded
 - **Central Arena & Gate Mechanics**: See [ARENA_INSTRUCTIONS.md](ARENA_INSTRUCTIONS.md)
 - **4-Player Base Compound & Upgrades**: See [BASE_INSTRUCTIONS.md](BASE_INSTRUCTIONS.md)
 - **Decoupled Economy & Item System**: See [ECONOMY_INSTRUCTIONS.md](ECONOMY_INSTRUCTIONS.md)
+- **Sky Sub-Arena Mini-Games**: See [docs/minigames/README.md](docs/minigames/README.md)
 
 ---
 
@@ -101,6 +102,12 @@ coin-collector/
 ├── BASE_INSTRUCTIONS.md                   # 4-player bases, claiming, banking, upgrades & walls
 ├── ECONOMY_INSTRUCTIONS.md                # Decoupled economy, item schema, progression & diagnostics
 ├── README.md                              # Repository overview
+├── docs/
+│   └── minigames/
+│       ├── README.md                      # Sky Sub-Arena architecture, lifecycle & rewards
+│       ├── COIN_FORGE.md                  # Coin Forge micro-tycoon loop & buff specs
+│       ├── BASE_SENTRY.md                 # Base Sentry tower defense waves & sentry specs
+│       └── NEW_MINIGAME_GUIDE.md          # Mini-game authoring guide & template
 └── src/
     ├── ReplicatedStorage/
     │   ├── Coin.lua                       # Coin OOP class: geometry, spin, light, collection callback
@@ -111,15 +118,24 @@ coin-collector/
     │   ├── GateController.lua             # TweenService 4-gate synchronizer & neon lights
     │   ├── PlayerBase.lua                 # Modular player base class: claim pad, bank vault, launch pad
     │   ├── VaultItemRegistry.luau         # Pure item definitions, economic roles & scaling formulas
-    │   └── EconomySimulator.luau          # Headless economy simulation & scaling validation suite
+    │   ├── EconomySimulator.luau          # Headless economy simulation & scaling validation suite
+    │   └── MiniGames/
+    │       └── MiniGameRegistry.luau      # Pure catalog & schema for Sky Sub-Arena games & buffs
     ├── ServerScriptService/
     │   ├── CoinCollector.server.lua       # Main game coordinator: loop, round states & solo runs
-    │   └── VaultService.lua               # Atomic economy transactions, vault storage & live telemetry
+    │   ├── VaultService.lua               # Atomic economy transactions, vault storage & live telemetry
+    │   └── MiniGames/
+    │       ├── MiniGameService.lua        # Sky platform spawner, session manager & rewards
+    │       └── Games/
+    │           ├── CoinForge.lua          # Micro-Tycoon ore -> furnace -> stamper loop
+    │           └── BaseSentry.lua         # Tower Defense wave runner & sentry nodes
     └── StarterPlayer/
         └── StarterPlayerScripts/
             ├── CoinHUD.client.lua         # Client-side UI displaying player coin & gem balance
             ├── CoinVisualController.client.lua # Client-side visual animation for coins
-            └── GemVisualController.client.lua  # Client-side 3D tumbling animation for gems
+            ├── GemVisualController.client.lua  # Client-side 3D tumbling animation for gems
+            ├── MiniGameHUD.client.lua     # Dynamic mini-game launcher & active HUD
+            └── VaultHUD.client.lua        # Bank vault modal UI
 ```
 
 ---
@@ -141,4 +157,8 @@ For specific implementations, refer directly to the designated guide:
 | **Base Wall Construction** | [BASE_INSTRUCTIONS.md](BASE_INSTRUCTIONS.md) | [src/ReplicatedStorage/PlayerBase.lua](src/ReplicatedStorage/PlayerBase.lua) |
 | **Activity & Task Zones** | [BASE_INSTRUCTIONS.md](BASE_INSTRUCTIONS.md) | [src/ReplicatedStorage/PlayerBase.lua](src/ReplicatedStorage/PlayerBase.lua) |
 | **Global Config Attributes** | [src/ReplicatedStorage/CoinConfig.lua](src/ReplicatedStorage/CoinConfig.lua) | [src/ReplicatedStorage/CoinConfig.lua](src/ReplicatedStorage/CoinConfig.lua), [src/ReplicatedStorage/GemConfig.luau](src/ReplicatedStorage/GemConfig.luau) |
+| **Sky Sub-Arena Mini-Games** | [docs/minigames/README.md](docs/minigames/README.md) | [src/ReplicatedStorage/MiniGames/MiniGameRegistry.luau](src/ReplicatedStorage/MiniGames/MiniGameRegistry.luau), [src/ServerScriptService/MiniGames/MiniGameService.lua](src/ServerScriptService/MiniGames/MiniGameService.lua) |
+| **Coin Forge Mini-Game** | [docs/minigames/COIN_FORGE.md](docs/minigames/COIN_FORGE.md) | [src/ServerScriptService/MiniGames/Games/CoinForge.lua](src/ServerScriptService/MiniGames/Games/CoinForge.lua) |
+| **Base Sentry Mini-Game** | [docs/minigames/BASE_SENTRY.md](docs/minigames/BASE_SENTRY.md) | [src/ServerScriptService/MiniGames/Games/BaseSentry.lua](src/ServerScriptService/MiniGames/Games/BaseSentry.lua) |
+| **Authoring New Mini-Games** | [docs/minigames/NEW_MINIGAME_GUIDE.md](docs/minigames/NEW_MINIGAME_GUIDE.md) | [src/ReplicatedStorage/MiniGames/MiniGameRegistry.luau](src/ReplicatedStorage/MiniGames/MiniGameRegistry.luau) |
 
