@@ -7,9 +7,12 @@
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local TeleportService = game:GetService("TeleportService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local MiniGameRegistry = require(ReplicatedStorage:WaitForChild("MiniGames"):WaitForChild("MiniGameRegistry"))
+local MiniGameEventBus = require(ReplicatedStorage:WaitForChild("MiniGames"):WaitForChild("MiniGameEventBus"))
 local VaultService = require(script.Parent.Parent:WaitForChild("VaultService"))
 
 local MiniGameService = {}
@@ -321,6 +324,27 @@ function MiniGameService.StartSession(player, gameId, targetBase)
 	local baseCenter = (base and base.center) or (base and base:GetPosition()) or Vector3.new(0, 0, -140)
 	local baseId = (base and base.id) or (player:GetAttribute("AssignedBaseId")) or 1
 
+	-- Standalone Universe Place Teleportation Handoff (if configured and published)
+	if gameDef.mode == "Universe" and not RunService:IsStudio() and (gameDef.placeId and gameDef.placeId > 0) then
+		local teleportOptions = Instance.new("TeleportOptions")
+		local teleportData = {
+			userId = player.UserId,
+			baseId = baseId,
+			gameId = gameId,
+			sourcePlaceId = game.PlaceId,
+		}
+		teleportOptions:SetTeleportData(teleportData)
+
+		local ok, err = pcall(function()
+			TeleportService:TeleportAsync(gameDef.placeId, { player }, teleportOptions)
+		end)
+		if ok then
+			return true, "Teleporting to standalone mini-game place"
+		else
+			warn(string.format("[MiniGameService] Universe teleport failed (%s). Falling back to embedded sky arena.", tostring(err)))
+		end
+	end
+
 	-- 2. Construct Procedural Sky Platform
 	local platformModel, spawnCFrame, gameContentFolder, platformCenter = buildSkyPlatform(baseId, baseCenter)
 
@@ -364,28 +388,43 @@ function MiniGameService.StartSession(player, gameId, targetBase)
 		end)
 	end
 
-	-- 5. Launch Dedicated Mini-Game Controller
+	-- 5. Launch Dedicated Mini-Game Package Controller (Dynamic discovery - ZERO hardcoded game names!)
 	local gameControllerModule = nil
-	if gameId == "CoinForge" then
-		local ok, mod = pcall(function()
-			return require(script.Parent:WaitForChild("Games"):WaitForChild("CoinForge"))
-		end)
-		if ok then gameControllerModule = mod end
-	elseif gameId == "BaseSentry" then
-		local ok, mod = pcall(function()
-			return require(script.Parent:WaitForChild("Games"):WaitForChild("BaseSentry"))
-		end)
-		if ok then gameControllerModule = mod end
+	local serverPkgName = gameDef.serverPackage or gameId
+
+	-- Look in Packages folder first
+	local packagesFolder = script.Parent:FindFirstChild("Packages")
+	if packagesFolder then
+		local pkg = packagesFolder:FindFirstChild(serverPkgName)
+		local srv = pkg and pkg:FindFirstChild("Server")
+		if srv and srv:IsA("ModuleScript") then
+			local ok, mod = pcall(require, srv)
+			if ok then gameControllerModule = mod end
+		end
+	end
+
+	-- Fallback to Games folder for backward compatibility
+	if not gameControllerModule then
+		local gamesFolder = script.Parent:FindFirstChild("Games")
+		local gameMod = gamesFolder and gamesFolder:FindFirstChild(serverPkgName)
+		if gameMod and gameMod:IsA("ModuleScript") then
+			local ok, mod = pcall(require, gameMod)
+			if ok then gameControllerModule = mod end
+		end
 	end
 
 	if gameControllerModule and gameControllerModule.Start then
-		session.controller = gameControllerModule.Start({
+		local context = {
 			player = player,
 			base = base,
 			platformModel = platformModel,
 			gameContentFolder = gameContentFolder,
+			container = gameContentFolder,
 			center = platformCenter,
 			duration = gameDef.duration,
+			config = gameDef,
+			eventBus = MiniGameEventBus,
+			isStandalone = false,
 			onProgress = function(progressData)
 				if not session.isEnded and gameStateUpdateEvent then
 					gameStateUpdateEvent:FireClient(player, {
@@ -402,7 +441,11 @@ function MiniGameService.StartSession(player, gameId, targetBase)
 					MiniGameService.EndSession(player, outcome or "Completed", scoreMultiplier or 1.0)
 				end
 			end,
-		})
+		}
+
+		session.controller = gameControllerModule.Start(context)
+	else
+		warn(string.format("[MiniGameService] Failed to find game controller for %s", tostring(gameId)))
 	end
 
 	-- 6. Countdown Timer Thread

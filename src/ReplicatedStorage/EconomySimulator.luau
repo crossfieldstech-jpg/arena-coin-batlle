@@ -230,7 +230,7 @@ function EconomySimulator.RunSimulation(rounds)
 				globalSinks.Gems += deposit
 			end
 
-			local newLevel, progress, nextCost = calcLevel(runner.vault)
+			local newLevel, _progress, _nextCost = calcLevel(runner.vault)
 			runner.level = newLevel
 			runner.multiplier = calcMultiplier(newLevel)
 		end

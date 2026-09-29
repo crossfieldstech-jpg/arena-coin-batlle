@@ -16,6 +16,7 @@ local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 local MiniGameRegistry = require(ReplicatedStorage:WaitForChild("MiniGames"):WaitForChild("MiniGameRegistry"))
+local MiniGameEventBus = require(ReplicatedStorage:WaitForChild("MiniGames"):WaitForChild("MiniGameEventBus"))
 
 -- ScreenGui Setup
 local screenGui = Instance.new("ScreenGui")
@@ -197,6 +198,65 @@ exitButton.Parent = activeHud
 local exitCorner = Instance.new("UICorner")
 exitCorner.CornerRadius = UDim.new(0, 8)
 exitCorner.Parent = exitButton
+
+-- Dedicated Container for Per-Game Custom Client Widgets
+local activeCustomContainer = Instance.new("Frame")
+activeCustomContainer.Name = "ActiveCustomFrame"
+activeCustomContainer.AnchorPoint = Vector2.new(0.5, 0)
+activeCustomContainer.Position = UDim2.new(0.5, 0, 0, 94)
+activeCustomContainer.Size = UDim2.new(0, 440, 0, 52)
+activeCustomContainer.BackgroundTransparency = 1
+activeCustomContainer.Visible = false
+activeCustomContainer.Parent = screenGui
+
+local activeClientController = nil
+local activeClientGameId = nil
+
+local function mountGameClient(gameId)
+	if activeClientController then
+		pcall(function() activeClientController:Unmount() end)
+		activeClientController = nil
+		activeClientGameId = nil
+		activeCustomContainer:ClearAllChildren()
+	end
+
+	local gameDef = MiniGameRegistry.GetGame(gameId)
+	local clientPkgName = (gameDef and gameDef.clientPackage) or gameId
+
+	local packagesFolder = ReplicatedStorage:FindFirstChild("MiniGames") and ReplicatedStorage.MiniGames:FindFirstChild("Packages")
+	local pkg = packagesFolder and packagesFolder:FindFirstChild(clientPkgName)
+	local clientMod = pkg and pkg:FindFirstChild("Client")
+
+	if clientMod and clientMod:IsA("ModuleScript") then
+		local ok, controllerClass = pcall(require, clientMod)
+		if ok and controllerClass then
+			local instance = if controllerClass.new then controllerClass.new() else controllerClass
+			if instance.Mount then
+				activeCustomContainer.Visible = true
+				pcall(function()
+					instance:Mount({
+						player = player,
+						rootContainer = activeCustomContainer,
+						eventBus = MiniGameEventBus,
+						config = gameDef,
+					})
+				end)
+				activeClientController = instance
+				activeClientGameId = gameId
+			end
+		end
+	end
+end
+
+local function unmountGameClient()
+	if activeClientController then
+		pcall(function() activeClientController:Unmount() end)
+		activeClientController = nil
+		activeClientGameId = nil
+	end
+	activeCustomContainer:ClearAllChildren()
+	activeCustomContainer.Visible = false
+end
 
 -- =========================================================================
 -- 3. Mission Results Modal
@@ -500,6 +560,7 @@ resultsBackdrop.MouseButton1Click:Connect(function()
 end)
 
 exitButton.MouseButton1Click:Connect(function()
+	unmountGameClient()
 	local remotes = ReplicatedStorage:FindFirstChild("MiniGameRemotes")
 	local exitEvt = remotes and remotes:FindFirstChild("RequestExitGame")
 	if exitEvt then
@@ -539,6 +600,13 @@ task.spawn(function()
 	if stateUpdate then
 		stateUpdate.OnClientEvent:Connect(function(data)
 			if data then
+				if activeClientGameId ~= data.gameId then
+					mountGameClient(data.gameId)
+				end
+
+				-- Forward to In-Process EventBus
+				MiniGameEventBus.SessionProgress:Fire(data)
+
 				activeHud.Visible = true
 				activeTimer.Text = string.format("⏱ %02ds", math.max(0, data.timeRemaining or 0))
 				if (data.timeRemaining or 0) <= 10 then
@@ -560,6 +628,7 @@ task.spawn(function()
 	local completed = remotes:WaitForChild("GameCompleted", 10)
 	if completed then
 		completed.OnClientEvent:Connect(function(data)
+			unmountGameClient()
 			activeHud.Visible = false
 			if data then
 				local isWin = (data.outcome == "Victory" or data.outcome == "Completed")
