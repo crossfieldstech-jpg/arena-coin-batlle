@@ -212,8 +212,17 @@ activeCustomContainer.Parent = screenGui
 
 local activeClientController = nil
 local activeClientGameId = nil
+local clearGuidanceVisuals = nil
+local hideNoticeBanner = nil
 
 local function mountGameClient(gameId)
+	if clearGuidanceVisuals then
+		clearGuidanceVisuals()
+	end
+	if hideNoticeBanner then
+		hideNoticeBanner()
+	end
+
 	if activeClientController then
 		pcall(function() activeClientController:Unmount() end)
 		activeClientController = nil
@@ -492,10 +501,19 @@ local function showNoticeBanner(titleText, bodyText, strokeColor, duration)
 	end)
 end
 
+hideNoticeBanner = function()
+	if noticeHideThread then
+		task.cancel(noticeHideThread)
+		noticeHideThread = nil
+	end
+	noticeBanner.Visible = false
+	noticeBanner.Position = UDim2.new(0.5, 0, 0, -110)
+end
+
 -- Client-only guidance beam and waypoint indicator
 local activeGuideCleanup = nil
 
-local function clearGuidanceVisuals()
+clearGuidanceVisuals = function()
 	if activeGuideCleanup then
 		pcall(activeGuideCleanup)
 		activeGuideCleanup = nil
@@ -745,6 +763,13 @@ local function populateGameCards(games, baseId)
 
 		launchBtn.MouseButton1Click:Connect(function()
 			menuContainer.Visible = false
+			if clearGuidanceVisuals then
+				clearGuidanceVisuals()
+			end
+			if hideNoticeBanner then
+				hideNoticeBanner()
+			end
+
 			local remotes = ReplicatedStorage:FindFirstChild("MiniGameRemotes")
 			local startFn = remotes and remotes:FindFirstChild("RequestStartGame")
 			if startFn then
@@ -820,6 +845,11 @@ task.spawn(function()
 	local inactiveNotice = remotes:WaitForChild("BaseInactiveNotice", 10)
 	if inactiveNotice then
 		inactiveNotice.OnClientEvent:Connect(function(data)
+			-- Strict guard: never display base inactive notifications if player is in a mini-game
+			if activeHud.Visible or activeClientController ~= nil then
+				return
+			end
+
 			if data then
 				if data.status == "UNCLAIMED" then
 					showNoticeBanner(
@@ -855,6 +885,13 @@ task.spawn(function()
 	if stateUpdate then
 		stateUpdate.OnClientEvent:Connect(function(data)
 			if data then
+				if clearGuidanceVisuals then
+					clearGuidanceVisuals()
+				end
+				if hideNoticeBanner then
+					hideNoticeBanner()
+				end
+
 				if activeClientGameId ~= data.gameId then
 					mountGameClient(data.gameId)
 				end

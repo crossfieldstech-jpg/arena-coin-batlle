@@ -373,7 +373,16 @@ function MiniGameService.StartSession(player, gameId, targetBase)
 	end
 
 	-- Must own an active claimed base
-	if not base or (base.GetOwner and base:GetOwner() ~= player) then
+	local isOwner = false
+	if base then
+		if base.GetOwner and (base:GetOwner() == player or (base.ownerUserId ~= nil and base.ownerUserId ~= 0 and player.UserId == base.ownerUserId)) then
+			isOwner = true
+		elseif base.owner == player or (base.ownerUserId ~= nil and base.ownerUserId ~= 0 and player.UserId == base.ownerUserId) then
+			isOwner = true
+		end
+	end
+
+	if not isOwner then
 		return false, "You must claim an active base before starting a mini-game!"
 	end
 

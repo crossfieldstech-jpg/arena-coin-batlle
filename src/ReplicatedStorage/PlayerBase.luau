@@ -453,7 +453,7 @@ function PlayerBase:Build(parent)
 			return
 		end
 		portalDebounce[player] = now
-		local isOwner = (player == self.owner)
+		local isOwner = (player == self.owner or (self.ownerUserId ~= 0 and player.UserId == self.ownerUserId))
 		for _, cb in ipairs(self._miniGamePromptCallbacks) do
 			task.spawn(cb, player, self, isOwner)
 		end
@@ -468,6 +468,10 @@ function PlayerBase:Build(parent)
 		if not humanoid then return end
 		local player = Players:GetPlayerFromCharacter(hit.Parent)
 		if not player then return end
+		local root = hit.Parent:FindFirstChild("HumanoidRootPart")
+		if root and (root.Position - portalPad.Position).Magnitude > 8 then
+			return
+		end
 		triggerMiniGamePrompt(player)
 	end)
 
@@ -695,7 +699,7 @@ function PlayerBase:GetOwner()
 end
 
 function PlayerBase:IsOwned()
-	return self.owner ~= nil
+	return self.owner ~= nil or (self.ownerUserId ~= nil and self.ownerUserId ~= 0)
 end
 
 function PlayerBase:GetClaimPadPosition()
