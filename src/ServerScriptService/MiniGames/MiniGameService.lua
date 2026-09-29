@@ -275,6 +275,7 @@ function MiniGameService.OpenMenuForPlayer(player, base)
 		return
 	end
 	if isPlayerInArenaFn and isPlayerInArenaFn(player) then
+		MiniGameService.NotifyArenaActive(player)
 		return
 	end
 	if MiniGameService.IsPlayerInMiniGame(player) then
@@ -289,6 +290,21 @@ function MiniGameService.OpenMenuForPlayer(player, base)
 		games = enabledGames,
 		activeBuff = activeBuff,
 	})
+end
+
+function MiniGameService.NotifyArenaActive(player)
+	if not player or not player.Parent then
+		return
+	end
+	local noticeEvent = baseInactiveNoticeEvent
+	if not noticeEvent and remotesFolder then
+		noticeEvent = remotesFolder:FindFirstChild("BaseInactiveNotice")
+	end
+	if noticeEvent then
+		noticeEvent:FireClient(player, {
+			status = "ARENA_ACTIVE",
+		})
+	end
 end
 
 function MiniGameService.NotifyBaseInactive(player, targetBase, isOwnedByAnother, ownerName)
@@ -330,7 +346,7 @@ function MiniGameService.StartSession(player, gameId, targetBase)
 	end
 
 	if isPlayerInArenaFn and isPlayerInArenaFn(player) then
-		return false, "Cannot enter while Central Arena run is active"
+		return false, "You cannot enter the Sky Sub-Arena while your Central Arena run is active!"
 	end
 
 	local gameDef = MiniGameRegistry.GetGame(gameId)

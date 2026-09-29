@@ -600,6 +600,11 @@ local function setupPlayerBases()
 
 		-- Interactive Mini-Game Sky Portal Handler: Open mini-games selection or guide player if base is inactive
 		base:OnMiniGamePrompt(function(player, targetBase, isOwner)
+			if activePlayer == player then
+				MiniGameService.NotifyArenaActive(player)
+				return
+			end
+
 			if targetBase:GetOwner() == player then
 				MiniGameService.OpenMenuForPlayer(player, targetBase)
 			elseif targetBase:GetOwner() == nil then

@@ -838,6 +838,14 @@ task.spawn(function()
 						Color3.fromRGB(231, 76, 60),
 						4.5
 					)
+				elseif data.status == "ARENA_ACTIVE" then
+					menuContainer.Visible = false
+					showNoticeBanner(
+						"⚠️ ARENA RUN IN PROGRESS",
+						"You cannot enter the Sky Sub-Arena while your Central Arena run is active! Finish your run first.",
+						Color3.fromRGB(231, 76, 60),
+						4.5
+					)
 				end
 			end
 		end)
