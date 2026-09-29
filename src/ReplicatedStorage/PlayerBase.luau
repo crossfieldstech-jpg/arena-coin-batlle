@@ -398,14 +398,16 @@ function PlayerBase:Build(parent)
 		zoneTextCorner.CornerRadius = UDim.new(0, 6)
 		zoneTextCorner.Parent = zoneText
 
-		return zonePad
+		return zonePad, zoneText
 	end
 
 	-- Activity Zone 1 (Right Back Yard - e.g. Upgrades / Tasks)
 	makeActivityZone("ActivityZone_Alpha", Vector3.new(22, 0.6, -20), "ACTIVITY ZONE ALPHA\n[Open for Tasks]")
 
 	-- Activity Zone 2 (Left Back Yard - Sky Sub-Arena Mini-Games Portal)
-	local _zoneBeta = makeActivityZone("ActivityZone_Beta", Vector3.new(-30, 0.6, 24.5), "SKY SUB-ARENA\n[Step to Play]")
+	local _zoneBeta, zoneBetaText = makeActivityZone("ActivityZone_Beta", Vector3.new(-30, 0.6, 24.5), "🔒 SKY SUB-ARENA [LOCKED]\n[Claim Base at Front to Activate]")
+	zoneBetaText.TextColor3 = Color3.fromRGB(240, 160, 40)
+	self.zoneBetaLabel = zoneBetaText
 
 	-- Interactive Mini-Game Sky Portal Pad (in ActivityZone_Beta)
 	local portalOffset = Vector3.new(-30, 0.75, 24.5)
@@ -435,34 +437,38 @@ function PlayerBase:Build(parent)
 
 	local portalPrompt = Instance.new("ProximityPrompt")
 	portalPrompt.Name = "PortalPrompt"
-	portalPrompt.ActionText = "Open Mini-Games"
-	portalPrompt.ObjectText = "Sky Sub-Arena"
+	portalPrompt.ActionText = "Claim Base First"
+	portalPrompt.ObjectText = "Sky Sub-Arena [Locked]"
 	portalPrompt.KeyboardKeyCode = Enum.KeyCode.E
 	portalPrompt.RequiresLineOfSight = false
 	portalPrompt.MaxActivationDistance = 14
 	portalPrompt.HoldDuration = 0
 	portalPrompt.Parent = portalPad
+	self.portalPrompt = portalPrompt
+
+	local portalDebounce = {}
+	local function triggerMiniGamePrompt(player)
+		local now = os.clock()
+		if portalDebounce[player] and (now - portalDebounce[player] < 2.5) then
+			return
+		end
+		portalDebounce[player] = now
+		local isOwner = (player == self.owner)
+		for _, cb in ipairs(self._miniGamePromptCallbacks) do
+			task.spawn(cb, player, self, isOwner)
+		end
+	end
 
 	portalPrompt.Triggered:Connect(function(player)
-		if player == self.owner then
-			for _, cb in ipairs(self._miniGamePromptCallbacks) do
-				task.spawn(cb, player, self)
-			end
-		end
+		triggerMiniGamePrompt(player)
 	end)
 
-	local portalTouchDebounce = {}
 	portalPad.Touched:Connect(function(hit)
 		local humanoid = hit.Parent and hit.Parent:FindFirstChildOfClass("Humanoid")
 		if not humanoid then return end
 		local player = Players:GetPlayerFromCharacter(hit.Parent)
-		if not player or player ~= self.owner then return end
-		local now = os.clock()
-		if portalTouchDebounce[player] and (now - portalTouchDebounce[player] < 2) then return end
-		portalTouchDebounce[player] = now
-		for _, cb in ipairs(self._miniGamePromptCallbacks) do
-			task.spawn(cb, player, self)
-		end
+		if not player then return end
+		triggerMiniGamePrompt(player)
 	end)
 
 	-- Activity Zone 3 (Front Workshop Yard)
@@ -619,6 +625,16 @@ function PlayerBase:SetOwner(player)
 		self.spawnLocation.Enabled = false
 	end
 
+	-- Update Sky Sub-Arena Portal Visuals
+	if self.zoneBetaLabel then
+		self.zoneBetaLabel.Text = "🌀 SKY SUB-ARENA\n[Step to Play]"
+		self.zoneBetaLabel.TextColor3 = Color3.fromRGB(215, 175, 255)
+	end
+	if self.portalPrompt then
+		self.portalPrompt.ActionText = "Open Mini-Games"
+		self.portalPrompt.ObjectText = "Sky Sub-Arena"
+	end
+
 	self:BuildVisualBarrier()
 end
 
@@ -653,6 +669,16 @@ function PlayerBase:ClearOwner()
 		self.spawnLocation.Enabled = true
 	end
 
+	-- Reset Sky Sub-Arena Portal Visuals to Locked
+	if self.zoneBetaLabel then
+		self.zoneBetaLabel.Text = "🔒 SKY SUB-ARENA [LOCKED]\n[Claim Base at Front to Activate]"
+		self.zoneBetaLabel.TextColor3 = Color3.fromRGB(240, 160, 40)
+	end
+	if self.portalPrompt then
+		self.portalPrompt.ActionText = "Claim Base First"
+		self.portalPrompt.ObjectText = "Sky Sub-Arena [Locked]"
+	end
+
 	self:ClearVisualBarrier()
 
 	self:UpdatePerformance({
@@ -670,6 +696,13 @@ end
 
 function PlayerBase:IsOwned()
 	return self.owner ~= nil
+end
+
+function PlayerBase:GetClaimPadPosition()
+	if self.claimPad then
+		return self.claimPad.Position
+	end
+	return self.center + Vector3.new(0, 1, -self.size / 2 + 22)
 end
 
 -- Modular method to construct walls later on when player collects money / completes tasks

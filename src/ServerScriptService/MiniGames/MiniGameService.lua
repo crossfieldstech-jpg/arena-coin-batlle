@@ -24,6 +24,7 @@ local requestStartGameFunction = nil
 local requestExitGameEvent = nil
 local gameStateUpdateEvent = nil
 local gameCompletedEvent = nil
+local baseInactiveNoticeEvent = nil
 
 -- Active sessions: [userId] = sessionData
 local activeSessions = {}
@@ -224,6 +225,13 @@ function MiniGameService.Init()
 		gameCompletedEvent.Parent = remotesFolder
 	end
 
+	baseInactiveNoticeEvent = remotesFolder:FindFirstChild("BaseInactiveNotice")
+	if not baseInactiveNoticeEvent then
+		baseInactiveNoticeEvent = Instance.new("RemoteEvent")
+		baseInactiveNoticeEvent.Name = "BaseInactiveNotice"
+		baseInactiveNoticeEvent.Parent = remotesFolder
+	end
+
 	-- Bind RemoteFunction: Client requests to launch a mini-game
 	requestStartGameFunction.OnServerInvoke = function(player, gameId, targetBaseId)
 		return MiniGameService.StartSession(player, gameId, targetBaseId)
@@ -283,6 +291,33 @@ function MiniGameService.OpenMenuForPlayer(player, base)
 	})
 end
 
+function MiniGameService.NotifyBaseInactive(player, targetBase, isOwnedByAnother, ownerName)
+	if not player or not player.Parent then
+		return
+	end
+	if not baseInactiveNoticeEvent then
+		return
+	end
+
+	local claimPos = nil
+	if targetBase then
+		if targetBase.GetClaimPadPosition then
+			claimPos = targetBase:GetClaimPadPosition()
+		elseif targetBase.claimPad then
+			claimPos = targetBase.claimPad.Position
+		elseif targetBase.center then
+			claimPos = targetBase.center + Vector3.new(0, 1, -18)
+		end
+	end
+
+	baseInactiveNoticeEvent:FireClient(player, {
+		status = isOwnedByAnother and "OWNED_BY_OTHER" or "UNCLAIMED",
+		ownerName = ownerName or "Another Player",
+		claimPadPosition = claimPos,
+		baseId = targetBase and targetBase.id or 1,
+	})
+end
+
 function MiniGameService.StartSession(player, gameId, targetBase)
 	if not player or not player.Parent then
 		return false, "Player not found"
@@ -319,6 +354,11 @@ function MiniGameService.StartSession(player, gameId, targetBase)
 		if assignedId then
 			base = getBaseByIdFn(assignedId)
 		end
+	end
+
+	-- Must own an active claimed base
+	if not base or (base.GetOwner and base:GetOwner() ~= player) then
+		return false, "You must claim an active base before starting a mini-game!"
 	end
 
 	local baseCenter = (base and base.center) or (base and base:GetPosition()) or Vector3.new(0, 0, -140)
