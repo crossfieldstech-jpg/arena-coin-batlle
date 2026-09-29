@@ -615,6 +615,17 @@ local function initializeGame()
 	MiniGameService.SetArenaChecker(function(player)
 		return activePlayer == player
 	end)
+	MiniGameService.SetBaseResolver(function(player)
+		return playerToBaseMap[player]
+	end)
+	MiniGameService.SetBaseLookup(function(baseId)
+		for _, b in ipairs(playerBases) do
+			if b.id == baseId then
+				return b
+			end
+		end
+		return nil
+	end)
 
 	local settingsFolder = CoinConfig.GetSettingsInstance()
 	settingsFolder:SetAttribute("ArenaStatus", "IdleReady")
@@ -730,9 +741,24 @@ local function onCharacterAdded(player, character)
 		return
 	end
 
-	task.wait(0.1)
+	root.AssemblyLinearVelocity = Vector3.zero
+	root.AssemblyAngularVelocity = Vector3.zero
+
 	-- If player owns a base, spawn them at their owned base
 	local ownedBase = playerToBaseMap[player]
+	if not ownedBase then
+		local assignedId = player:GetAttribute("AssignedBaseId")
+		if assignedId then
+			for _, b in ipairs(playerBases) do
+				if b.id == assignedId and b:GetOwner() == player then
+					ownedBase = b
+					playerToBaseMap[player] = b
+					break
+				end
+			end
+		end
+	end
+
 	if ownedBase then
 		root.CFrame = ownedBase:GetSpawnCFrame()
 	else

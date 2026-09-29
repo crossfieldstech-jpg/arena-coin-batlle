@@ -25,11 +25,21 @@ local gameCompletedEvent = nil
 -- Active sessions: [userId] = sessionData
 local activeSessions = {}
 
--- External check hooks (injected by CoinCollector)
+-- External check and base resolver hooks (injected by CoinCollector)
 local isPlayerInArenaFn = nil
+local getBaseForPlayerFn = nil
+local getBaseByIdFn = nil
 
 function MiniGameService.SetArenaChecker(fn)
 	isPlayerInArenaFn = fn
+end
+
+function MiniGameService.SetBaseResolver(fn)
+	getBaseForPlayerFn = fn
+end
+
+function MiniGameService.SetBaseLookup(fn)
+	getBaseByIdFn = fn
 end
 
 function MiniGameService.IsPlayerInMiniGame(player)
@@ -137,7 +147,7 @@ end
 -- =========================================================================
 
 local function safeTeleport(character, targetCFrame)
-	if not character then
+	if not character or not targetCFrame then
 		return
 	end
 	local root = character:FindFirstChild("HumanoidRootPart")
@@ -147,7 +157,16 @@ local function safeTeleport(character, targetCFrame)
 
 	root.AssemblyLinearVelocity = Vector3.zero
 	root.AssemblyAngularVelocity = Vector3.zero
+	root.Anchored = true
 	root.CFrame = targetCFrame
+
+	task.delay(0.15, function()
+		if root and root.Parent then
+			root.Anchored = false
+			root.AssemblyLinearVelocity = Vector3.zero
+			root.AssemblyAngularVelocity = Vector3.zero
+		end
+	end)
 end
 
 -- =========================================================================
@@ -281,15 +300,26 @@ function MiniGameService.StartSession(player, gameId, targetBase)
 		return false, "Mini-game not available"
 	end
 
-	-- Resolve base
-	local base = targetBase
-	if typeof(base) == "number" then
-		-- ID passed, resolve object if available
-		base = nil
+	-- Resolve player's base: priority to player's actual owned base
+	local base = nil
+	if getBaseForPlayerFn then
+		base = getBaseForPlayerFn(player)
+	end
+	if not base and getBaseByIdFn and typeof(targetBase) == "number" then
+		base = getBaseByIdFn(targetBase)
+	end
+	if not base and typeof(targetBase) == "table" and targetBase.GetSpawnCFrame then
+		base = targetBase
+	end
+	if not base and getBaseByIdFn then
+		local assignedId = player:GetAttribute("AssignedBaseId")
+		if assignedId then
+			base = getBaseByIdFn(assignedId)
+		end
 	end
 
-	local baseCenter = (base and base.center) or Vector3.new(0, 0, 140)
-	local baseId = (base and base.id) or 1
+	local baseCenter = (base and base.center) or (base and base:GetPosition()) or Vector3.new(0, 0, -140)
+	local baseId = (base and base.id) or (player:GetAttribute("AssignedBaseId")) or 1
 
 	-- 2. Construct Procedural Sky Platform
 	local platformModel, spawnCFrame, gameContentFolder, platformCenter = buildSkyPlatform(baseId, baseCenter)
@@ -456,11 +486,24 @@ function MiniGameService.EndSession(player, outcome, scoreMultiplier)
 	end
 
 	-- 2. Return Teleportation to Ground Base
+	local base = session.base
+	if not base and getBaseForPlayerFn then
+		base = getBaseForPlayerFn(player)
+	end
+	if not base and getBaseByIdFn then
+		local assignedId = player:GetAttribute("AssignedBaseId")
+		if assignedId then
+			base = getBaseByIdFn(assignedId)
+		end
+	end
+
 	local targetCFrame = nil
-	if session.base and session.base.GetSpawnCFrame then
-		targetCFrame = session.base:GetSpawnCFrame()
+	if base and base.GetSpawnCFrame then
+		targetCFrame = base:GetSpawnCFrame()
+	elseif base and base.center then
+		targetCFrame = CFrame.new(base.center + Vector3.new(0, 4, 0))
 	else
-		targetCFrame = CFrame.new(0, 5, 140)
+		targetCFrame = CFrame.new(0, 4, -140)
 	end
 
 	safeTeleport(player.Character, targetCFrame)
