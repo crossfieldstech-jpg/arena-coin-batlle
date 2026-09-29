@@ -628,6 +628,29 @@ local function setupPlayerBases()
 end
 
 local function initializeGame()
+	-- 1. Construct Central Coin Arena Enclosure with 4 Gates
+	enclosure = ArenaEnclosure.new({
+		sizeX = CoinConfig.GetSetting("ArenaSizeX"),
+		sizeZ = CoinConfig.GetSetting("ArenaSizeZ"),
+		wallHeight = CoinConfig.GetSetting("WallHeight"),
+		wallThickness = CoinConfig.GetSetting("WallThickness"),
+		gateWidth = CoinConfig.GetSetting("GateWidth"),
+		gateHeight = CoinConfig.GetSetting("GateHeight"),
+		center = Vector3.new(0, 0, 0),
+		baseDistance = CoinConfig.GetSetting("BaseDistance") or 140,
+		baseSize = CoinConfig.GetSetting("BaseSize") or 84,
+	})
+	enclosure:Build()
+
+	-- 2. Construct Gate Controller with all 4 cardinal gates (North, South, East, West)
+	local gatesData = enclosure:GetGatesInfo()
+	local moveDuration = CoinConfig.GetSetting("GateMoveDuration")
+	gate = GateController.new(gatesData, moveDuration)
+
+	-- 3. Construct 4 Contained Player Bases positioned away from central arena
+	-- (Construct bases BEFORE initializing services and resolvers so playerBases is populated!)
+	setupPlayerBases()
+
 	VaultService.Init()
 	MiniGameService.Init()
 	MiniGameService.SetArenaChecker(function(player)
@@ -649,6 +672,12 @@ local function initializeGame()
 					end
 				end
 			end
+			-- Fallback: check all playerBases directly for matching owner
+			for _, b in ipairs(playerBases) do
+				if b.ownerUserId == player.UserId or b:GetOwner() == player then
+					return b
+				end
+			end
 		end
 		return owned
 	end)
@@ -667,25 +696,6 @@ local function initializeGame()
 	settingsFolder:SetAttribute("ArenaActiveBaseId", 0)
 
 	GemConfig.GetSettingsInstance()
-
-	-- 1. Construct Central Coin Arena Enclosure with 4 Gates
-	enclosure = ArenaEnclosure.new({
-		sizeX = CoinConfig.GetSetting("ArenaSizeX"),
-		sizeZ = CoinConfig.GetSetting("ArenaSizeZ"),
-		wallHeight = CoinConfig.GetSetting("WallHeight"),
-		wallThickness = CoinConfig.GetSetting("WallThickness"),
-		gateWidth = CoinConfig.GetSetting("GateWidth"),
-		gateHeight = CoinConfig.GetSetting("GateHeight"),
-		center = Vector3.new(0, 0, 0),
-		baseDistance = CoinConfig.GetSetting("BaseDistance") or 140,
-		baseSize = CoinConfig.GetSetting("BaseSize") or 84,
-	})
-	enclosure:Build()
-
-	-- 2. Construct Gate Controller with all 4 cardinal gates (North, South, East, West)
-	local gatesData = enclosure:GetGatesInfo()
-	local moveDuration = CoinConfig.GetSetting("GateMoveDuration")
-	gate = GateController.new(gatesData, moveDuration)
 
 	-- Bind gate sensor to prevent unauthorized players from entering the gate
 	gate:BindGateSensors(function(hit, gateItem)
@@ -737,9 +747,6 @@ local function initializeGame()
 			end
 		end
 	end)
-
-	-- 3. Construct 4 Contained Player Bases positioned away from central arena
-	setupPlayerBases()
 
 	-- 4. Clean up any previous coin folder and create a fresh one
 	local existingFolder = Workspace:FindFirstChild("Coins")

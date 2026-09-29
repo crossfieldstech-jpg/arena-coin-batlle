@@ -372,13 +372,27 @@ function MiniGameService.StartSession(player, gameId, targetBase)
 		end
 	end
 
-	-- Must own an active claimed base
+	-- Check ownership: must be claimed by this player
 	local isOwner = false
 	if base then
 		if base.GetOwner and (base:GetOwner() == player or (base.ownerUserId ~= nil and base.ownerUserId ~= 0 and player.UserId == base.ownerUserId)) then
 			isOwner = true
 		elseif base.owner == player or (base.ownerUserId ~= nil and base.ownerUserId ~= 0 and player.UserId == base.ownerUserId) then
 			isOwner = true
+		elseif player:GetAttribute("AssignedBaseId") == base.id then
+			isOwner = true
+		end
+	end
+
+	-- Secondary fallback: if player has an assigned base attribute or playerBase claimed, allow it
+	if not isOwner and player:GetAttribute("AssignedBaseId") ~= nil then
+		local assignedId = player:GetAttribute("AssignedBaseId")
+		if getBaseByIdFn then
+			local b = getBaseByIdFn(assignedId)
+			if b then
+				base = b
+				isOwner = true
+			end
 		end
 	end
 
