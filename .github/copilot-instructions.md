@@ -29,3 +29,16 @@ Roblox Studio MCP does not run an automatic background filesystem watcher. There
 
 3. **Guaranteed Parity**:
    - Never leave local files and Roblox Studio DataModel out of sync. Both environments must reflect the exact same code at the conclusion of every turn.
+
+## Mandatory Git Branch & Pull Request Protocol
+
+Never push directly to `main`. Always allow the user to review and verify changes before merging:
+
+1. **Feature Branching**:
+   - For every new feature, bugfix, or refactoring task, create and checkout a descriptive feature branch (e.g. `feat/...` or `fix/...`).
+   - Never commit or push directly to `main`.
+
+2. **Branch Push & Pull Request Creation**:
+   - Commit changes to the feature branch with descriptive, structured commit messages.
+   - Push the feature branch to `origin`.
+   - Create a Pull Request (targeting `main`) so the user can inspect diffs and verify code before merging.
