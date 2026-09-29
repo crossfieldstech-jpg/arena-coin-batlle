@@ -22,6 +22,15 @@ function MiniGameRegistry.RegisterGame(gameDef)
 	assert(typeof(gameDef.buff) == "table", "gameDef.buff must be a table")
 	assert(typeof(gameDef.order) == "number", "gameDef.order must be a number")
 
+	local mode = gameDef.mode or "Embedded"
+	assert(mode == "Embedded" or mode == "Universe" or mode == "Hybrid", "gameDef.mode must be 'Embedded', 'Universe', or 'Hybrid'")
+
+	local placeId = gameDef.placeId or 0
+	assert(typeof(placeId) == "number", "gameDef.placeId must be a number if specified")
+
+	local clientPackage = gameDef.clientPackage or gameDef.id
+	local serverPackage = gameDef.serverPackage or gameDef.id
+
 	local rewards = {
 		minCoins = gameDef.rewards.minCoins or 40,
 		maxCoins = gameDef.rewards.maxCoins or 80,
@@ -52,6 +61,10 @@ function MiniGameRegistry.RegisterGame(gameDef)
 		rewards = rewards,
 		buff = buff,
 		order = gameDef.order,
+		mode = mode,
+		placeId = placeId,
+		clientPackage = clientPackage,
+		serverPackage = serverPackage,
 		enabled = if gameDef.enabled ~= nil then gameDef.enabled else true,
 	}
 
@@ -108,6 +121,8 @@ MiniGameRegistry.RegisterGame({
 	duration = 60, -- 60 seconds
 	order = 1,
 	enabled = true,
+	mode = "Hybrid",
+	placeId = 0,
 	rewards = {
 		minCoins = 40,
 		maxCoins = 80,
@@ -136,6 +151,8 @@ MiniGameRegistry.RegisterGame({
 	duration = 90, -- 90 seconds (3 waves)
 	order = 2,
 	enabled = true,
+	mode = "Hybrid",
+	placeId = 0,
 	rewards = {
 		minCoins = 60,
 		maxCoins = 120,
