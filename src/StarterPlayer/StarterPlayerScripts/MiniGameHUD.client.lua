@@ -11,6 +11,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -377,6 +378,226 @@ pillLabel.TextXAlignment = Enum.TextXAlignment.Left
 pillLabel.Parent = buffPill
 
 -- =========================================================================
+-- 5. Base Inactive Visual Alert Banner & In-World Guidance System
+-- =========================================================================
+local noticeBanner = Instance.new("Frame")
+noticeBanner.Name = "NoticeBanner"
+noticeBanner.AnchorPoint = Vector2.new(0.5, 0)
+noticeBanner.Position = UDim2.new(0.5, 0, 0, -110)
+noticeBanner.Size = UDim2.new(0, 520, 0, 80)
+noticeBanner.BackgroundColor3 = Color3.fromRGB(18, 22, 30)
+noticeBanner.BackgroundTransparency = 0.08
+noticeBanner.BorderSizePixel = 0
+noticeBanner.Visible = false
+noticeBanner.ZIndex = 50
+noticeBanner.Parent = screenGui
+
+local noticeCorner = Instance.new("UICorner")
+noticeCorner.CornerRadius = UDim.new(0, 14)
+noticeCorner.Parent = noticeBanner
+
+local noticeStroke = Instance.new("UIStroke")
+noticeStroke.Name = "NoticeStroke"
+noticeStroke.Color = Color3.fromRGB(243, 156, 18)
+noticeStroke.Thickness = 2
+noticeStroke.Parent = noticeBanner
+
+local noticeIcon = Instance.new("TextLabel")
+noticeIcon.Name = "Icon"
+noticeIcon.Size = UDim2.new(0, 48, 0, 48)
+noticeIcon.Position = UDim2.new(0, 14, 0, 16)
+noticeIcon.BackgroundTransparency = 1
+noticeIcon.Font = Enum.Font.GothamBlack
+noticeIcon.Text = "⚠️"
+noticeIcon.TextColor3 = Color3.fromRGB(243, 156, 18)
+noticeIcon.TextSize = 28
+noticeIcon.ZIndex = 51
+noticeIcon.Parent = noticeBanner
+
+local noticeTitle = Instance.new("TextLabel")
+noticeTitle.Name = "Title"
+noticeTitle.Size = UDim2.new(1, -74, 0, 24)
+noticeTitle.Position = UDim2.new(0, 64, 0, 12)
+noticeTitle.BackgroundTransparency = 1
+noticeTitle.Font = Enum.Font.GothamBold
+noticeTitle.Text = "BASE NOT ACTIVE"
+noticeTitle.TextColor3 = Color3.fromRGB(241, 196, 15)
+noticeTitle.TextSize = 16
+noticeTitle.TextXAlignment = Enum.TextXAlignment.Left
+noticeTitle.ZIndex = 51
+noticeTitle.Parent = noticeBanner
+
+local noticeMessage = Instance.new("TextLabel")
+noticeMessage.Name = "Message"
+noticeMessage.Size = UDim2.new(1, -74, 0, 36)
+noticeMessage.Position = UDim2.new(0, 64, 0, 34)
+noticeMessage.BackgroundTransparency = 1
+noticeMessage.Font = Enum.Font.GothamMedium
+noticeMessage.Text = "Step on the glowing [CLAIM BASE] pad at the front entrance to activate this compound!"
+noticeMessage.TextColor3 = Color3.fromRGB(225, 230, 240)
+noticeMessage.TextSize = 13
+noticeMessage.TextWrapped = true
+noticeMessage.TextXAlignment = Enum.TextXAlignment.Left
+noticeMessage.ZIndex = 51
+noticeMessage.Parent = noticeBanner
+
+local noticeProgress = Instance.new("Frame")
+noticeProgress.Name = "ProgressLine"
+noticeProgress.AnchorPoint = Vector2.new(0, 1)
+noticeProgress.Position = UDim2.new(0, 14, 1, -4)
+noticeProgress.Size = UDim2.new(1, -28, 0, 3)
+noticeProgress.BackgroundColor3 = Color3.fromRGB(243, 156, 18)
+noticeProgress.BorderSizePixel = 0
+noticeProgress.ZIndex = 52
+noticeProgress.Parent = noticeBanner
+
+local progressCorner = Instance.new("UICorner")
+progressCorner.CornerRadius = UDim.new(0, 2)
+progressCorner.Parent = noticeProgress
+
+local noticeHideThread = nil
+
+local function showNoticeBanner(titleText, bodyText, strokeColor, duration)
+	duration = duration or 4.5
+	if noticeHideThread then
+		task.cancel(noticeHideThread)
+		noticeHideThread = nil
+	end
+
+	noticeTitle.Text = titleText or "⚠️ ATTENTION"
+	noticeMessage.Text = bodyText or ""
+	local color = strokeColor or Color3.fromRGB(243, 156, 18)
+	noticeStroke.Color = color
+	noticeTitle.TextColor3 = color
+	noticeProgress.BackgroundColor3 = color
+
+	noticeBanner.Visible = true
+	noticeProgress.Size = UDim2.new(1, -28, 0, 3)
+
+	TweenService:Create(noticeBanner, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Position = UDim2.new(0.5, 0, 0, 24)
+	}):Play()
+
+	TweenService:Create(noticeProgress, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
+		Size = UDim2.new(0, 0, 0, 3)
+	}):Play()
+
+	noticeHideThread = task.delay(duration, function()
+		local hideTween = TweenService:Create(noticeBanner, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			Position = UDim2.new(0.5, 0, 0, -110)
+		})
+		hideTween:Play()
+		hideTween.Completed:Wait()
+		noticeBanner.Visible = false
+	end)
+end
+
+-- Client-only guidance beam and waypoint indicator
+local activeGuideCleanup = nil
+
+local function clearGuidanceVisuals()
+	if activeGuideCleanup then
+		pcall(activeGuideCleanup)
+		activeGuideCleanup = nil
+	end
+end
+
+local function spawnGuidanceBeam(targetPosition)
+	clearGuidanceVisuals()
+	if not targetPosition then return end
+
+	local char = player.Character
+	local root = char and char:FindFirstChild("HumanoidRootPart")
+	if not root then return end
+
+	local anchorPart = Instance.new("Part")
+	anchorPart.Name = "ClientGuideAnchor"
+	anchorPart.Size = Vector3.new(0.5, 0.5, 0.5)
+	anchorPart.Position = targetPosition + Vector3.new(0, 1.5, 0)
+	anchorPart.Anchored = true
+	anchorPart.CanCollide = false
+	anchorPart.Transparency = 1
+	anchorPart.Parent = workspace
+
+	local attachTarget = Instance.new("Attachment")
+	attachTarget.Name = "GuideTargetAttach"
+	attachTarget.Parent = anchorPart
+
+	local attachRoot = Instance.new("Attachment")
+	attachRoot.Name = "GuideRootAttach"
+	attachRoot.Parent = root
+
+	local beam = Instance.new("Beam")
+	beam.Name = "ClaimGuidanceBeam"
+	beam.Attachment0 = attachRoot
+	beam.Attachment1 = attachTarget
+	beam.Width0 = 1.2
+	beam.Width1 = 2.4
+	beam.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(243, 156, 18)),
+		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 215, 0)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(46, 204, 113)),
+	})
+	beam.LightEmission = 0.8
+	beam.LightInfluence = 0
+	beam.FaceCamera = true
+	beam.TextureSpeed = 2.0
+	beam.TextureLength = 5
+	beam.Parent = anchorPart
+
+	local waypointGui = Instance.new("BillboardGui")
+	waypointGui.Name = "ClaimWaypointGui"
+	waypointGui.Size = UDim2.new(0, 200, 0, 52)
+	waypointGui.StudsOffset = Vector3.new(0, 4.5, 0)
+	waypointGui.AlwaysOnTop = true
+	waypointGui.Parent = anchorPart
+
+	local waypointLabel = Instance.new("TextLabel")
+	waypointLabel.Size = UDim2.new(1, 0, 1, 0)
+	waypointLabel.BackgroundColor3 = Color3.fromRGB(15, 20, 28)
+	waypointLabel.BackgroundTransparency = 0.15
+	waypointLabel.Font = Enum.Font.GothamBlack
+	waypointLabel.Text = "⚡ STEP HERE TO CLAIM ⚡\n[Activate Base]"
+	waypointLabel.TextColor3 = Color3.fromRGB(80, 255, 140)
+	waypointLabel.TextSize = 13
+	waypointLabel.Parent = waypointGui
+
+	local waypointCorner = Instance.new("UICorner")
+	waypointCorner.CornerRadius = UDim.new(0, 8)
+	waypointCorner.Parent = waypointLabel
+
+	local waypointStroke = Instance.new("UIStroke")
+	waypointStroke.Color = Color3.fromRGB(46, 204, 113)
+	waypointStroke.Thickness = 2
+	waypointStroke.Parent = waypointLabel
+
+	local isCleaned = false
+	local function cleanup()
+		if isCleaned then return end
+		isCleaned = true
+		if attachRoot and attachRoot.Parent then attachRoot:Destroy() end
+		if anchorPart and anchorPart.Parent then anchorPart:Destroy() end
+	end
+	activeGuideCleanup = cleanup
+
+	task.spawn(function()
+		local startTime = os.clock()
+		while not isCleaned and (os.clock() - startTime < 6) do
+			task.wait(0.2)
+			local currentChar = player.Character
+			local currentRoot = currentChar and currentChar:FindFirstChild("HumanoidRootPart")
+			if currentRoot then
+				local dist = (currentRoot.Position - targetPosition).Magnitude
+				if dist <= 7 then
+					break
+				end
+			end
+		end
+		cleanup()
+	end)
+end
+
+-- =========================================================================
 -- Logic & Remotes Binding
 -- =========================================================================
 
@@ -527,11 +748,11 @@ local function populateGameCards(games, baseId)
 			local remotes = ReplicatedStorage:FindFirstChild("MiniGameRemotes")
 			local startFn = remotes and remotes:FindFirstChild("RequestStartGame")
 			if startFn then
-				local ok, res = pcall(function()
+				local ok, success, msg = pcall(function()
 					return startFn:InvokeServer(gameDef.id, currentActiveBaseId)
 				end)
-				if not ok or res == false then
-					warn("[MiniGameHUD] Failed to launch:", tostring(res))
+				if not ok or success == false then
+					showNoticeBanner("⚠️ LAUNCH FAILED", tostring(msg or "You must claim an active base before starting a mini-game!"), Color3.fromRGB(231, 76, 60), 5.0)
 				end
 			end
 		end)
@@ -592,6 +813,32 @@ task.spawn(function()
 				populateGameCards(data.games, data.baseId)
 				updateBuffPill(data.activeBuff)
 				menuContainer.Visible = true
+			end
+		end)
+	end
+
+	local inactiveNotice = remotes:WaitForChild("BaseInactiveNotice", 10)
+	if inactiveNotice then
+		inactiveNotice.OnClientEvent:Connect(function(data)
+			if data then
+				if data.status == "UNCLAIMED" then
+					showNoticeBanner(
+						"⚠️ BASE NOT ACTIVE",
+						"Step on the glowing [CLAIM BASE] pad at the front entrance to activate this compound and unlock Sky Sub-Arena missions!",
+						Color3.fromRGB(243, 156, 18),
+						5.0
+					)
+					if data.claimPadPosition then
+						spawnGuidanceBeam(data.claimPadPosition)
+					end
+				elseif data.status == "OWNED_BY_OTHER" then
+					showNoticeBanner(
+						"⚠️ NOT YOUR BASE",
+						string.format("This base belongs to %s! Claim your own unclaimed base at its front pad to unlock missions.", tostring(data.ownerName or "another player")),
+						Color3.fromRGB(231, 76, 60),
+						4.5
+					)
+				end
 			end
 		end)
 	end

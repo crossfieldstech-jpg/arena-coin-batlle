@@ -1,0 +1,13 @@
+# Rojo ignore file
+# Excludes development tools, local scripts, and editor configurations from ever syncing to Roblox Studio or place builds.
+
+.vscode/
+tools/
+*.ps1
+*.bat
+*.cmd
+tasks.json
+*.md
+docs/
+.git/
+.github/

@@ -146,6 +146,35 @@ Development and synchronization in this repository operate through the **Roblox 
 3. **Automatic Inbound Pull (Studio $\rightarrow$ VS Code)**:
    - When scripts are edited directly within Roblox Studio's editor, the assistant reads the live `.Source` via MCP and updates the local files in `src/` to guarantee parity.
 
+### 🚀 Manual MCP Activation & Management in VS Code
+
+You can manually inspect, start, or restart the Roblox Studio MCP bridge directly from VS Code at any time:
+
+#### Option 1: Via VS Code Tasks Menu (Recommended)
+1. Press `Ctrl+Shift+P` (or `F1`) to open the VS Code Command Palette.
+2. Type **`Tasks: Run Task`** and select it.
+3. Choose one of the built-in Roblox Studio tasks:
+   - **`Roblox Studio: Activate MCP Connection`**: Cleans up any stale bridge processes, ensures Studio is running, and initializes the MCP stdio connection.
+   - **`Roblox Studio: Check MCP Status`**: Performs an immediate health check on Roblox Studio, `StudioMCP.exe`, and VS Code MCP settings.
+   - **`Roblox Studio: Restart MCP Bridge`**: Restarts the bridge cleanly if the connection drops.
+   - **`Rojo: Build Place File`**: Rebuilds `ArenaCoinBattle.rbxl` from `src/`.
+
+#### Option 2: Via Terminal CLI
+Run the dedicated PowerShell management script from the project root:
+```powershell
+# Check connection health and process status
+.\tools\roblox-mcp.ps1 -Action Status
+
+# Manually start / activate the bridge
+.\tools\roblox-mcp.ps1 -Action Start
+
+# Cleanly restart the bridge
+.\tools\roblox-mcp.ps1 -Action Restart
+
+# Build place file with Rojo
+.\tools\roblox-mcp.ps1 -Action Sync
+```
+
 ---
 
 ## 🧪 Testing & Verification
