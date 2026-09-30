@@ -10,6 +10,31 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local DefaultConfig = require(ReplicatedStorage:WaitForChild("MiniGames"):WaitForChild("Packages"):WaitForChild("BaseSentry"):WaitForChild("Config"))
 
+local function mergeConfig(defaults, overrides)
+	local result = {}
+	if typeof(defaults) == "table" then
+		for k, v in pairs(defaults) do
+			if typeof(v) == "table" then
+				local sub = {}
+				for sk, sv in pairs(v) do sub[sk] = sv end
+				result[k] = sub
+			else
+				result[k] = v
+			end
+		end
+	end
+	if typeof(overrides) == "table" then
+		for k, v in pairs(overrides) do
+			if typeof(v) == "table" and typeof(result[k]) == "table" then
+				for sk, sv in pairs(v) do result[k][sk] = sv end
+			else
+				result[k] = v
+			end
+		end
+	end
+	return result
+end
+
 local BaseSentryServer = {}
 BaseSentryServer.__index = BaseSentryServer
 
@@ -39,7 +64,7 @@ function BaseSentryServer.Start(context)
 	self.base = context.base
 	self.container = context.container or context.gameContentFolder or workspace
 	self.center = context.center or Vector3.zero
-	self.config = context.config or DefaultConfig
+	self.config = mergeConfig(DefaultConfig, context.config)
 	self.duration = context.duration or self.config.duration or 90
 	self.eventBus = context.eventBus
 	self.isStandalone = context.isStandalone or false

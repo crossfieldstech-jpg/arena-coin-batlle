@@ -492,39 +492,62 @@ function MiniGameService.StartSession(player, gameId, targetBase)
 		end
 	end
 
-	if gameControllerModule and gameControllerModule.Start then
-		local context = {
-			player = player,
-			base = base,
-			platformModel = platformModel,
-			gameContentFolder = gameContentFolder,
-			container = gameContentFolder,
-			center = platformCenter,
-			duration = gameDef.duration,
-			config = gameDef,
-			eventBus = MiniGameEventBus,
-			isStandalone = false,
-			onProgress = function(progressData)
-				if not session.isEnded and gameStateUpdateEvent then
-					gameStateUpdateEvent:FireClient(player, {
-						gameId = gameId,
-						timeRemaining = session.timeRemaining,
-						objective = progressData.objective or "",
-						score = progressData.score or 0,
-						extra = progressData.extra or {},
-					})
-				end
-			end,
-			onComplete = function(outcome, scoreMultiplier)
-				if not session.isEnded then
-					MiniGameService.EndSession(player, outcome or "Completed", scoreMultiplier or 1.0)
-				end
-			end,
-		}
-
-		session.controller = gameControllerModule.Start(context)
-	else
+	if not gameControllerModule or not gameControllerModule.Start then
 		warn(string.format("[MiniGameService] Failed to find game controller for %s", tostring(gameId)))
+		MiniGameService.EndSession(player, "InitFailed", 0)
+		return false, "Mini-game package controller not found"
+	end
+
+	local context = {
+		player = player,
+		base = base,
+		platformModel = platformModel,
+		gameContentFolder = gameContentFolder,
+		container = gameContentFolder,
+		center = platformCenter,
+		duration = gameDef.duration,
+		config = gameDef,
+		eventBus = MiniGameEventBus,
+		isStandalone = false,
+		onProgress = function(progressData)
+			if not session.isEnded and gameStateUpdateEvent then
+				gameStateUpdateEvent:FireClient(player, {
+					gameId = gameId,
+					timeRemaining = session.timeRemaining,
+					objective = progressData.objective or "",
+					score = progressData.score or 0,
+					extra = progressData.extra or {},
+				})
+			end
+		end,
+		onComplete = function(outcome, scoreMultiplier)
+			if not session.isEnded then
+				MiniGameService.EndSession(player, outcome or "Completed", scoreMultiplier or 1.0)
+			end
+		end,
+	}
+
+	local startOk, controllerOrErr = pcall(function()
+		return gameControllerModule.Start(context)
+	end)
+
+	if not startOk or not controllerOrErr then
+		warn(string.format("[MiniGameService] Controller Start failed for %s: %s", tostring(gameId), tostring(controllerOrErr)))
+		MiniGameService.EndSession(player, "InitFailed", 0)
+		return false, "Failed to initialize mini-game: " .. tostring(controllerOrErr)
+	end
+
+	session.controller = controllerOrErr
+
+	-- Immediate initial client state sync (mounts active HUD and custom widget without delay)
+	if gameStateUpdateEvent and not session.isEnded then
+		gameStateUpdateEvent:FireClient(player, {
+			gameId = gameId,
+			timeRemaining = session.timeRemaining,
+			objective = session.controller and session.controller.GetObjective and session.controller:GetObjective() or "In Progress",
+			score = 0,
+			extra = {},
+		})
 	end
 
 	-- 6. Countdown Timer Thread
@@ -542,7 +565,16 @@ function MiniGameService.StartSession(player, gameId, targetBase)
 		end
 
 		if not session.isEnded then
-			MiniGameService.EndSession(player, "TimeExpired", 1.0)
+			local finalScoreMultiplier = 1.0
+			if session.controller and session.controller.GetScoreMultiplier then
+				local ok, mult = pcall(function()
+					return session.controller:GetScoreMultiplier()
+				end)
+				if ok and typeof(mult) == "number" then
+					finalScoreMultiplier = mult
+				end
+			end
+			MiniGameService.EndSession(player, "TimeExpired", finalScoreMultiplier)
 		end
 	end)
 
@@ -562,6 +594,12 @@ function MiniGameService.EndSession(player, outcome, scoreMultiplier)
 	if session.diedConnection then
 		session.diedConnection:Disconnect()
 		session.diedConnection = nil
+	end
+
+	-- Cancel timer thread
+	if session.timerThread then
+		task.cancel(session.timerThread)
+		session.timerThread = nil
 	end
 
 	-- Stop controller
@@ -637,8 +675,8 @@ function MiniGameService.EndSession(player, outcome, scoreMultiplier)
 		end
 	end)
 
-	-- 4. Notify Client of Results
-	if gameCompletedEvent and player.Parent then
+	-- 4. Notify Client of Results (suppressed on launch initialization failure)
+	if gameCompletedEvent and player.Parent and outcome ~= "InitFailed" then
 		gameCompletedEvent:FireClient(player, {
 			gameId = session.gameId,
 			outcome = outcome,
