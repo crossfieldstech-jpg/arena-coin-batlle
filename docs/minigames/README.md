@@ -121,5 +121,6 @@ Explore the dedicated documentation for individual mini-games and the extension 
 
 - [ARCHITECTURE.md](ARCHITECTURE.md): Complete architecture manual for decoupled packages, event bus signals, and universe-ready standalone place execution.
 - [COIN_FORGE.md](COIN_FORGE.md): Complete mechanical and operational guide for the Coin Forge micro-tycoon mini-game.
-- [BASE_SENTRY.md](BASE_SENTRY.md): Wave design, sentry mechanics, and stats for the Base Sentry tower defense mini-game.
+- [ALIEN_BASE_DEFENCE.md](ALIEN_BASE_DEFENCE.md): Wave design, soldier bunker mechanics, alien swarms, and stats for the Alien Base Defence tactical tower defense mini-game (formerly Base Sentry).
+- [BASE_SENTRY.md](BASE_SENTRY.md): Legacy reference for the original Base Sentry prototype.
 - [NEW_MINIGAME_GUIDE.md](NEW_MINIGAME_GUIDE.md): Step-by-step developer guide and boilerplate template for authoring new mini-games.

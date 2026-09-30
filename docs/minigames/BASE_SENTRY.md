@@ -1,4 +1,6 @@
-# Base Sentry Mini-Game Specification
+# Base Sentry Mini-Game Specification (Legacy Reference)
+
+> **Notice**: Base Sentry has been completely redesigned into **[Alien Base Defence](ALIEN_BASE_DEFENCE.md)** (`AlienBaseDefence`), featuring military soldier bunkers, alien swarms, cleaner icons (🪖 / 👽 / 🛸), and an expanded $108 \times 108$ overgrown battlefield with rolling mounds and trees. This document is retained for historical architectural reference.
 
 A tactical tower defense mini-game situated on the Sky Sub-Arena platform at $Y=400$. Players construct automated Gatling sentries and overclock defenses to guard their high-tech Mini-Vault Core across 3 intense waves of rogue clockwork bandits.
 
