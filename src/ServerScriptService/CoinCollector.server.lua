@@ -600,13 +600,25 @@ local function setupPlayerBases()
 
 		-- Interactive Mini-Game Sky Portal Handler: Open mini-games selection or guide player if base is inactive
 		base:OnMiniGamePrompt(function(player, targetBase, isOwner)
-			if targetBase:GetOwner() == player then
+			-- If player is currently in a mini-game, ignore all ground portal prompts
+			if MiniGameService.IsPlayerInMiniGame(player) then
+				return
+			end
+
+			-- Strict mutual exclusion: if active arena runner, block from mini-games
+			if activePlayer == player then
+				MiniGameService.NotifyArenaActive(player)
+				return
+			end
+
+			local isBaseOwner = (targetBase:GetOwner() == player or (targetBase.ownerUserId ~= 0 and player.UserId == targetBase.ownerUserId))
+			if isBaseOwner then
 				MiniGameService.OpenMenuForPlayer(player, targetBase)
-			elseif targetBase:GetOwner() == nil then
+			elseif not targetBase:IsOwned() then
 				MiniGameService.NotifyBaseInactive(player, targetBase, false, nil)
 			else
 				local owner = targetBase:GetOwner()
-				local ownerName = owner and (owner.DisplayName or owner.Name) or "Another Player"
+				local ownerName = owner and (owner.DisplayName or owner.Name) or targetBase.ownerName or "Another Player"
 				MiniGameService.NotifyBaseInactive(player, targetBase, true, ownerName)
 			end
 		end)
@@ -616,30 +628,6 @@ local function setupPlayerBases()
 end
 
 local function initializeGame()
-	VaultService.Init()
-	MiniGameService.Init()
-	MiniGameService.SetArenaChecker(function(player)
-		return activePlayer == player
-	end)
-	MiniGameService.SetBaseResolver(function(player)
-		return playerToBaseMap[player]
-	end)
-	MiniGameService.SetBaseLookup(function(baseId)
-		for _, b in ipairs(playerBases) do
-			if b.id == baseId then
-				return b
-			end
-		end
-		return nil
-	end)
-
-	local settingsFolder = CoinConfig.GetSettingsInstance()
-	settingsFolder:SetAttribute("ArenaStatus", "IdleReady")
-	settingsFolder:SetAttribute("ArenaActivePlayer", "")
-	settingsFolder:SetAttribute("ArenaActiveBaseId", 0)
-
-	GemConfig.GetSettingsInstance()
-
 	-- 1. Construct Central Coin Arena Enclosure with 4 Gates
 	enclosure = ArenaEnclosure.new({
 		sizeX = CoinConfig.GetSetting("ArenaSizeX"),
@@ -658,6 +646,56 @@ local function initializeGame()
 	local gatesData = enclosure:GetGatesInfo()
 	local moveDuration = CoinConfig.GetSetting("GateMoveDuration")
 	gate = GateController.new(gatesData, moveDuration)
+
+	-- 3. Construct 4 Contained Player Bases positioned away from central arena
+	-- (Construct bases BEFORE initializing services and resolvers so playerBases is populated!)
+	setupPlayerBases()
+
+	VaultService.Init()
+	MiniGameService.Init()
+	MiniGameService.SetArenaChecker(function(player)
+		return activePlayer == player
+	end)
+	MiniGameService.SetBaseResolver(function(player)
+		local owned = playerToBaseMap[player]
+		if not owned and player and player.UserId then
+			for p, b in pairs(playerToBaseMap) do
+				if p.UserId == player.UserId then
+					return b
+				end
+			end
+			local assignedId = player:GetAttribute("AssignedBaseId")
+			if assignedId then
+				for _, b in ipairs(playerBases) do
+					if b.id == assignedId and (b.ownerUserId == player.UserId or b:GetOwner() == player) then
+						return b
+					end
+				end
+			end
+			-- Fallback: check all playerBases directly for matching owner
+			for _, b in ipairs(playerBases) do
+				if b.ownerUserId == player.UserId or b:GetOwner() == player then
+					return b
+				end
+			end
+		end
+		return owned
+	end)
+	MiniGameService.SetBaseLookup(function(baseId)
+		for _, b in ipairs(playerBases) do
+			if b.id == baseId then
+				return b
+			end
+		end
+		return nil
+	end)
+
+	local settingsFolder = CoinConfig.GetSettingsInstance()
+	settingsFolder:SetAttribute("ArenaStatus", "IdleReady")
+	settingsFolder:SetAttribute("ArenaActivePlayer", "")
+	settingsFolder:SetAttribute("ArenaActiveBaseId", 0)
+
+	GemConfig.GetSettingsInstance()
 
 	-- Bind gate sensor to prevent unauthorized players from entering the gate
 	gate:BindGateSensors(function(hit, gateItem)
@@ -709,9 +747,6 @@ local function initializeGame()
 			end
 		end
 	end)
-
-	-- 3. Construct 4 Contained Player Bases positioned away from central arena
-	setupPlayerBases()
 
 	-- 4. Clean up any previous coin folder and create a fresh one
 	local existingFolder = Workspace:FindFirstChild("Coins")
