@@ -58,6 +58,7 @@ function MiniGameRegistry.RegisterGame(gameDef)
 		description = gameDef.description,
 		icon = gameDef.icon,
 		duration = gameDef.duration,
+		platformSize = gameDef.platformSize or 54,
 		rewards = rewards,
 		buff = buff,
 		order = gameDef.order,
@@ -72,13 +73,20 @@ function MiniGameRegistry.RegisterGame(gameDef)
 end
 
 function MiniGameRegistry.GetGame(id)
+	if id == "BaseSentry" then
+		return registeredGames["AlienBaseDefence"] or registeredGames["BaseSentry"]
+	end
 	return registeredGames[id]
 end
 
 function MiniGameRegistry.GetAllGames()
 	local list = {}
+	local seen = {}
 	for _, gameItem in pairs(registeredGames) do
-		table.insert(list, gameItem)
+		if not seen[gameItem.id] then
+			seen[gameItem.id] = true
+			table.insert(list, gameItem)
+		end
 	end
 	table.sort(list, function(a, b)
 		return a.order < b.order
@@ -88,8 +96,10 @@ end
 
 function MiniGameRegistry.GetEnabledGames()
 	local list = {}
+	local seen = {}
 	for _, gameItem in pairs(registeredGames) do
-		if gameItem.enabled then
+		if gameItem.enabled and not seen[gameItem.id] then
+			seen[gameItem.id] = true
 			table.insert(list, gameItem)
 		end
 	end
@@ -100,11 +110,22 @@ function MiniGameRegistry.GetEnabledGames()
 end
 
 function MiniGameRegistry.GetBuff(buffId)
+	if buffId == "BaseSentry_TimeBuff" then
+		return registeredBuffs["AlienBaseDefence_Buff"] or registeredBuffs["BaseSentry_TimeBuff"]
+	end
 	return registeredBuffs[buffId]
 end
 
 function MiniGameRegistry.GetAllBuffs()
-	return registeredBuffs
+	local map = {}
+	local seen = {}
+	for id, buffItem in pairs(registeredBuffs) do
+		if not seen[buffItem.id] then
+			seen[buffItem.id] = true
+			map[buffItem.id] = buffItem
+		end
+	end
+	return map
 end
 
 -- =========================================================================
@@ -141,34 +162,39 @@ MiniGameRegistry.RegisterGame({
 	},
 })
 
--- 2. "Base Sentry" (Tower Defense: 3 Waves of rogue clockwork thieves -> Mini-Vault)
+-- 2. "Alien Base Defence" (Tower Defense: 3 Waves of alien swarms -> Outpost Command Core)
 MiniGameRegistry.RegisterGame({
-	id = "BaseSentry",
-	displayName = "Base Sentry",
+	id = "AlienBaseDefence",
+	displayName = "Alien Base Defence",
 	category = "Tower Defense",
-	description = "Deploy rapid Gatling sentries and frost traps along the defense corridor to protect the mini-vault from clockwork thieves!",
-	icon = "🛡️",
-	duration = 90, -- 90 seconds (3 waves)
+	description = "Deploy fortified soldier bunkers and heavy plasma batteries to protect the outpost command core from alien swarms!",
+	icon = "🪖",
+	duration = 95,
+	platformSize = 108,
 	order = 2,
 	enabled = true,
 	mode = "Hybrid",
 	placeId = 0,
 	rewards = {
 		minCoins = 60,
-		maxCoins = 120,
+		maxCoins = 130,
 		minGems = 1,
 		maxGems = 3,
-		relicChance = 0.15,
-		fragmentChance = 0.10, -- 10% chance to drop Star Fragment
+		relicChance = 0.20,
+		fragmentChance = 0.10,
 	},
 	buff = {
-		id = "BaseSentry_TimeBuff",
+		id = "AlienBaseDefence_Buff",
 		type = "TimeBonus",
-		value = 5, -- +5 seconds to central arena run timer (30s -> 35s)
-		displayName = "Overclocked Chrono-Armor",
-		description = "+5 Seconds Extra Time on your next Central Arena run!",
-		icon = "⏱️",
+		value = 6,
+		displayName = "Orbital Recon Boost",
+		description = "+6 Seconds Extra Time on your next Central Arena run!",
+		icon = "🛸",
 	},
 })
+
+-- Backwards compatibility alias for BaseSentry
+registeredGames["BaseSentry"] = registeredGames["AlienBaseDefence"]
+registeredBuffs["BaseSentry_TimeBuff"] = registeredBuffs["AlienBaseDefence_Buff"]
 
 return MiniGameRegistry

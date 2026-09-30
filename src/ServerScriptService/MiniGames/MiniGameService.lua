@@ -64,7 +64,7 @@ end
 -- Procedural Sky Platform Builder
 -- =========================================================================
 
-local function buildSkyPlatform(baseId, centerPosition)
+local function buildSkyPlatform(baseId, centerPosition, gameDef)
 	local skyY = 400
 	local center = Vector3.new(centerPosition.X, skyY, centerPosition.Z)
 
@@ -72,8 +72,8 @@ local function buildSkyPlatform(baseId, centerPosition)
 	model.Name = string.format("SkySubArena_Base%d", baseId)
 	model.Parent = Workspace
 
-	local platformSize = 54
-	local wallHeight = 16
+	local platformSize = (gameDef and gameDef.platformSize) or 54
+	local wallHeight = 20
 	local wallThickness = 2
 
 	-- 1. Main Floor
@@ -425,7 +425,7 @@ function MiniGameService.StartSession(player, gameId, targetBase)
 	end
 
 	-- 2. Construct Procedural Sky Platform
-	local platformModel, spawnCFrame, gameContentFolder, platformCenter = buildSkyPlatform(baseId, baseCenter)
+	local platformModel, spawnCFrame, gameContentFolder, platformCenter = buildSkyPlatform(baseId, baseCenter, gameDef)
 
 	-- 3. Prepare Session State
 	local session = {

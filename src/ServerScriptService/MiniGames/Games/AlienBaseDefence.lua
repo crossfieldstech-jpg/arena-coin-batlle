@@ -1,6 +1,6 @@
 --[[
-	BaseSentry.lua
-	Backward-compatibility alias delegating to AlienBaseDefence package engine:
+	AlienBaseDefence.lua
+	Games directory entrypoint delegating to decoupled package engine:
 	src/ServerScriptService/MiniGames/Packages/AlienBaseDefence/Server.luau
 ]]
 

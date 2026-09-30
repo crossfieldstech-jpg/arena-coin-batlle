@@ -4,11 +4,8 @@
 	Operates seamlessly in embedded Procedural Sky Sub-Arena or Standalone Universe places.
 ]]
 
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local DefaultConfig = require(ReplicatedStorage:WaitForChild("MiniGames"):WaitForChild("Packages"):WaitForChild("BaseSentry"):WaitForChild("Config"))
+local AlienBaseDefenceServer = require(script.Parent.Parent:WaitForChild("AlienBaseDefence"):WaitForChild("Server"))
+return AlienBaseDefenceServer
 
 local function mergeConfig(defaults, overrides)
 	local result = {}
