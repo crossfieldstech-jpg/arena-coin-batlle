@@ -922,7 +922,7 @@ task.spawn(function()
 		completed.OnClientEvent:Connect(function(data)
 			unmountGameClient()
 			activeHud.Visible = false
-			if data then
+			if data and data.outcome ~= "InitFailed" then
 				local isWin = (data.outcome == "Victory" or data.outcome == "Completed")
 				resultsBanner.Text = isWin and "★ MISSION COMPLETED ★" or "MISSION ENDED"
 				resultsBanner.TextColor3 = isWin and Color3.fromRGB(46, 204, 113) or Color3.fromRGB(231, 76, 60)

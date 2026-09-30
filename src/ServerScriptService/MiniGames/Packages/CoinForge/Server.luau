@@ -7,6 +7,31 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local DefaultConfig = require(ReplicatedStorage:WaitForChild("MiniGames"):WaitForChild("Packages"):WaitForChild("CoinForge"):WaitForChild("Config"))
 
+local function mergeConfig(defaults, overrides)
+	local result = {}
+	if typeof(defaults) == "table" then
+		for k, v in pairs(defaults) do
+			if typeof(v) == "table" then
+				local sub = {}
+				for sk, sv in pairs(v) do sub[sk] = sv end
+				result[k] = sub
+			else
+				result[k] = v
+			end
+		end
+	end
+	if typeof(overrides) == "table" then
+		for k, v in pairs(overrides) do
+			if typeof(v) == "table" and typeof(result[k]) == "table" then
+				for sk, sv in pairs(v) do result[k][sk] = sv end
+			else
+				result[k] = v
+			end
+		end
+	end
+	return result
+end
+
 local CoinForgeServer = {}
 CoinForgeServer.__index = CoinForgeServer
 
@@ -17,7 +42,7 @@ function CoinForgeServer.Start(context)
 	self.base = context.base
 	self.container = context.container or context.gameContentFolder or workspace
 	self.center = context.center or Vector3.zero
-	self.config = context.config or DefaultConfig
+	self.config = mergeConfig(DefaultConfig, context.config)
 	self.duration = context.duration or self.config.duration or 60
 	self.eventBus = context.eventBus
 	self.isStandalone = context.isStandalone or false
@@ -43,7 +68,12 @@ end
 function CoinForgeServer:BuildWorld()
 	local folder = self.container
 	local center = self.center
-	local offsets = self.config.stationOffsets
+	local offsets = (self.config and self.config.stationOffsets) or {
+		oreBin = Vector3.new(-14, 2.5, 0),
+		furnace = Vector3.new(0, 3.5, 6),
+		stamper = Vector3.new(14, 2, 0),
+		statusSign = Vector3.new(0, 10, 0),
+	}
 
 	-- 1. Raw Ore Hopper
 	local oreBin = Instance.new("Part")
@@ -332,6 +362,13 @@ end
 
 function CoinForgeServer:GetObjective()
 	return string.format("Batches Minted: %d", self.batchesStamped)
+end
+
+function CoinForgeServer:GetScoreMultiplier()
+	if self.batchesStamped <= 0 then
+		return 0.5
+	end
+	return math.clamp(0.6 + (self.batchesStamped * 0.25), 0.6, 2.0)
 end
 
 function CoinForgeServer:Stop()
