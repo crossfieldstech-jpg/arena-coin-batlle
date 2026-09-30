@@ -426,6 +426,11 @@ local function startSoloArenaRun(player, base)
 	activeBase = base
 	local playerName = player.DisplayName or player.Name
 
+	-- Notify active player that arena run has begun (auto-dismisses mini-game menus)
+	if MiniGameService.NotifyArenaActive then
+		MiniGameService.NotifyArenaActive(player)
+	end
+
 	local settingsFolder = CoinConfig.GetSettingsInstance()
 	settingsFolder:SetAttribute("ArenaStatus", "ActiveRun")
 	settingsFolder:SetAttribute("ArenaActivePlayer", playerName)

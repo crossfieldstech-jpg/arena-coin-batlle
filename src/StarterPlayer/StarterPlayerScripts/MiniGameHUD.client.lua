@@ -212,10 +212,13 @@ activeCustomContainer.Parent = screenGui
 
 local activeClientController = nil
 local activeClientGameId = nil
+local isSessionActive = false
+local activeNoticeTween = nil
 local clearGuidanceVisuals = nil
 local hideNoticeBanner = nil
 
 local function mountGameClient(gameId)
+	isSessionActive = true
 	if clearGuidanceVisuals then
 		clearGuidanceVisuals()
 	end
@@ -483,9 +486,15 @@ local function showNoticeBanner(titleText, bodyText, strokeColor, duration)
 	noticeBanner.Visible = true
 	noticeProgress.Size = UDim2.new(1, -28, 0, 3)
 
-	TweenService:Create(noticeBanner, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+	if activeNoticeTween then
+		pcall(function() activeNoticeTween:Cancel() end)
+		activeNoticeTween = nil
+	end
+
+	activeNoticeTween = TweenService:Create(noticeBanner, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
 		Position = UDim2.new(0.5, 0, 0, 24)
-	}):Play()
+	})
+	activeNoticeTween:Play()
 
 	TweenService:Create(noticeProgress, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
 		Size = UDim2.new(0, 0, 0, 3)
@@ -495,6 +504,7 @@ local function showNoticeBanner(titleText, bodyText, strokeColor, duration)
 		local hideTween = TweenService:Create(noticeBanner, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
 			Position = UDim2.new(0.5, 0, 0, -110)
 		})
+		activeNoticeTween = hideTween
 		hideTween:Play()
 		hideTween.Completed:Wait()
 		noticeBanner.Visible = false
@@ -502,6 +512,10 @@ local function showNoticeBanner(titleText, bodyText, strokeColor, duration)
 end
 
 hideNoticeBanner = function()
+	if activeNoticeTween then
+		pcall(function() activeNoticeTween:Cancel() end)
+		activeNoticeTween = nil
+	end
 	if noticeHideThread then
 		task.cancel(noticeHideThread)
 		noticeHideThread = nil
@@ -763,6 +777,7 @@ local function populateGameCards(games, baseId)
 
 		launchBtn.MouseButton1Click:Connect(function()
 			menuContainer.Visible = false
+			isSessionActive = true
 			if clearGuidanceVisuals then
 				clearGuidanceVisuals()
 			end
@@ -777,7 +792,10 @@ local function populateGameCards(games, baseId)
 					return startFn:InvokeServer(gameDef.id, currentActiveBaseId)
 				end)
 				if not ok or success == false then
-					showNoticeBanner("⚠️ LAUNCH FAILED", tostring(msg or "You must claim an active base before starting a mini-game!"), Color3.fromRGB(231, 76, 60), 5.0)
+					isSessionActive = false
+					if msg and tostring(msg) ~= "" then
+						showNoticeBanner("⚠️ LAUNCH FAILED", tostring(msg), Color3.fromRGB(231, 76, 60), 4.5)
+					end
 				end
 			end
 		end)
@@ -806,6 +824,7 @@ resultsBackdrop.MouseButton1Click:Connect(function()
 end)
 
 exitButton.MouseButton1Click:Connect(function()
+	isSessionActive = false
 	unmountGameClient()
 	local remotes = ReplicatedStorage:FindFirstChild("MiniGameRemotes")
 	local exitEvt = remotes and remotes:FindFirstChild("RequestExitGame")
@@ -845,8 +864,8 @@ task.spawn(function()
 	local inactiveNotice = remotes:WaitForChild("BaseInactiveNotice", 10)
 	if inactiveNotice then
 		inactiveNotice.OnClientEvent:Connect(function(data)
-			-- Strict guard: never display base inactive notifications if player is in a mini-game
-			if activeHud.Visible or activeClientController ~= nil then
+			-- Strict guard: never display base inactive notifications if player is inside or entering a mini-game
+			if isSessionActive or activeHud.Visible or activeClientController ~= nil then
 				return
 			end
 
@@ -885,6 +904,7 @@ task.spawn(function()
 	if stateUpdate then
 		stateUpdate.OnClientEvent:Connect(function(data)
 			if data then
+				isSessionActive = true
 				if clearGuidanceVisuals then
 					clearGuidanceVisuals()
 				end
@@ -920,6 +940,7 @@ task.spawn(function()
 	local completed = remotes:WaitForChild("GameCompleted", 10)
 	if completed then
 		completed.OnClientEvent:Connect(function(data)
+			isSessionActive = false
 			unmountGameClient()
 			activeHud.Visible = false
 			if data then
